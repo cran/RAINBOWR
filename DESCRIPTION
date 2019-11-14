@@ -1,7 +1,7 @@
 Package: RAINBOWR
 Type: Package
 Title: Genome-Wide Association Study with SNP-Set Methods
-Version: 0.1.13
+Version: 0.1.14
 Authors@R: c(
   person("Kosuke", "Hamazaki", email = "hamazaki@ut-biomet.org", role = c("aut", "cre")),
   person("Hiroyoshi", "Iwata", email = "aiwata@mail.ecc.u-tokyo.ac.jp", role = c("aut", "ctb"))
@@ -19,8 +19,8 @@ RoxygenNote: 6.1.1
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
 NeedsCompilation: yes
-Packaged: 2019-11-08 08:34:30 UTC; hamazaki
+Packaged: 2019-11-14 02:15:06 UTC; hamazaki
 Author: Kosuke Hamazaki [aut, cre],
   Hiroyoshi Iwata [aut, ctb]
 Repository: CRAN
-Date/Publication: 2019-11-12 12:30:02 UTC
+Date/Publication: 2019-11-14 09:00:09 UTC

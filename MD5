@@ -1,4 +1,4 @@
-bc971dd9ea037ebc9b680a075684eb4c *DESCRIPTION
+85051f083e94695139b8a1175c4d3413 *DESCRIPTION
 7bf1ccc26e5826ec963a19aff15d41f7 *LICENSE
 ebc59db75d1268ea34dcd98bb79e7b4d *NAMESPACE
 cea5feaba3b0dc5c5c10c1a0492229f6 *R/EMM_functions_cpp.R
@@ -32,7 +32,7 @@ f5526b2a74acb2df007f184f5e1f818f *README.md
 7c22e8bd5c047dad605d2b0b401627ba *data/datalist
 fdc459c142889e78bacaf1d184f49296 *inst/doc/RAINBOWR.R
 b3de89ef45591c614d242c93315c3169 *inst/doc/RAINBOWR.Rmd
-27f7da8f489d4db37241bd22bcd6cfb7 *inst/doc/RAINBOWR.html
+ad4c0250d1866f5058ca8567e101c12a *inst/doc/RAINBOWR.html
 fc43588133c424a67ff4d5ecce2267a6 *man/CalcThreshold.Rd
 42c0e77eb6f1dee1a8df7f4e40a40291 *man/EM3.cpp.Rd
 4558f8992a23e29fb42e403b4682be7e *man/EM3.linker.cpp.Rd
@@ -76,6 +76,6 @@ f31871427ffdd3f28545b5415dc0b707 *man/score.cpp.Rd
 b055d72c53346e78fe75a2d7a89bbcb8 *man/score.linker.cpp.Rd
 a5804b4132eac7f519a658260d6cfdba *man/spectralG.cpp.Rd
 360bba514cc60960abf248914906903e *man/welcome_to_RGWAS.Rd
-3456284f1f36599b172887cb57fb363c *src/EMM_functions.cpp
-ef137391e636b94d65dfceb855133e39 *src/RcppExports.cpp
+9c749f17a28fb67dbb09e49ef70dc35d *src/EMM_functions.cpp
+c50d9de009861bf6f34426d4f654120e *src/RcppExports.cpp
 b3de89ef45591c614d242c93315c3169 *vignettes/RAINBOWR.Rmd
