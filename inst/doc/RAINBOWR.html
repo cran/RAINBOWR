@@ -30,6 +30,93 @@ document.addEventListener('DOMContentLoaded', function(e) {
   }
 });
 </script>
+<script>// Hide empty <a> tag within highlighted CodeBlock for screen reader accessibility (see https://github.com/jgm/pandoc/issues/6352#issuecomment-626106786) -->
+// v0.0.1
+// Written by JooYoung Seo (jooyoung@psu.edu) and Atsushi Yasumoto on June 1st, 2020.
+
+document.addEventListener('DOMContentLoaded', function() {
+  const codeList = document.getElementsByClassName("sourceCode");
+  for (var i = 0; i < codeList.length; i++) {
+    var linkList = codeList[i].getElementsByTagName('a');
+    for (var j = 0; j < linkList.length; j++) {
+      if (linkList[j].innerHTML === "") {
+        linkList[j].setAttribute('aria-hidden', 'true');
+      }
+    }
+  }
+});
+</script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+      pre > code.sourceCode { white-space: pre; position: relative; }
+      pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+      pre > code.sourceCode > span:empty { height: 1.2em; }
+      code.sourceCode > span { color: inherit; text-decoration: inherit; }
+      div.sourceCode { margin: 1em 0; }
+      pre.sourceCode { margin: 0; }
+      @media screen {
+      div.sourceCode { overflow: auto; }
+      }
+      @media print {
+      pre > code.sourceCode { white-space: pre-wrap; }
+      pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+      }
+      pre.numberSource code
+        { counter-reset: source-line 0; }
+      pre.numberSource code > span
+        { position: relative; left: -4em; counter-increment: source-line; }
+      pre.numberSource code > span > a:first-child::before
+        { content: counter(source-line);
+          position: relative; left: -1em; text-align: right; vertical-align: baseline;
+          border: none; display: inline-block;
+          -webkit-touch-callout: none; -webkit-user-select: none;
+          -khtml-user-select: none; -moz-user-select: none;
+          -ms-user-select: none; user-select: none;
+          padding: 0 4px; width: 4em;
+          color: #aaaaaa;
+        }
+      pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+      div.sourceCode
+        {   }
+      @media screen {
+      pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+      }
+      code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+      code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+      code span.at { color: #7d9029; } /* Attribute */
+      code span.bn { color: #40a070; } /* BaseN */
+      code span.bu { } /* BuiltIn */
+      code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+      code span.ch { color: #4070a0; } /* Char */
+      code span.cn { color: #880000; } /* Constant */
+      code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+      code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+      code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+      code span.dt { color: #902000; } /* DataType */
+      code span.dv { color: #40a070; } /* DecVal */
+      code span.er { color: #ff0000; font-weight: bold; } /* Error */
+      code span.ex { } /* Extension */
+      code span.fl { color: #40a070; } /* Float */
+      code span.fu { color: #06287e; } /* Function */
+      code span.im { } /* Import */
+      code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+      code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+      code span.op { color: #666666; } /* Operator */
+      code span.ot { color: #007020; } /* Other */
+      code span.pp { color: #bc7a00; } /* Preprocessor */
+      code span.sc { color: #4070a0; } /* SpecialChar */
+      code span.ss { color: #bb6688; } /* SpecialString */
+      code span.st { color: #4070a0; } /* String */
+      code span.va { color: #19177c; } /* Variable */
+      code span.vs { color: #4070a0; } /* VerbatimString */
+      code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    </style>
 
 
 <style type="text/css">code{white-space: pre;}</style>
@@ -321,8 +408,21 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
+<div id="note" class="section level2">
+<h2>NOTE!!!!</h2>
+<div id="the-paper-for-rainbowr-has-been-published-in-plos-computational-biology-httpsjournals.plos.orgploscompbiolarticleid10.1371journal.pcbi.1007663.-if-you-use-this-rainbowr-in-your-paper-please-cite-rainbowr-as-follows" class="section level5">
+<h5>The paper for <code>RAINBOWR</code> has been published in PLOS Computational Biology (<a href="https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007663" class="uri">https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007663</a>). If you use this <code>RAINBOWR</code> in your paper, please cite <code>RAINBOWR</code> as follows:</h5>
+<ul>
+<li>Hamazaki, K. and Iwata, H. (2020) RAINBOW: Haplotype-based genome-wide association study using a novel SNP-set method. PLOS Computational Biology, 16(2): e1007663.</li>
+</ul>
+</div>
+<div id="the-stable-version-for-rainbowr-package-is-now-available-at-the-cran-comprehensive-r-archive-network." class="section level5">
+<h5>The stable version for <code>RAINBOWR</code> package is now available at the <a href="https://cran.r-project.org/package=RAINBOWR">CRAN (Comprehensive R Archive Network)</a>.</h5>
+<hr />
 <p>In this repository, the <code>R</code> package <code>RAINBOWR</code> is available. Here, we describe how to install and how to use <code>RAINBOWR</code>.</p>
 <hr />
+</div>
+</div>
 <div id="what-is-rainbowr" class="section level2">
 <h2>What is <code>RAINBOWR</code></h2>
 <p><code>RAINBOWR</code>(Reliable Association INference By Optimizing Weights with R) is a package to perform several types of <code>GWAS</code> as follows.</p>
@@ -346,6 +446,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li><code>See</code> function to see a brief view of data (like <code>head</code> function, but more useful)</li>
 <li><code>genetrait</code> function to generate pseudo phenotypic values from marker genotype</li>
 <li><code>SS_GWAS</code> function to summarize GWAS results (only for simulation study)</li>
+<li><code>estPhylo</code> and <code>estNetwork</code> functions to estimate phylogenetic tree or haplotype network and haplotype effects with non-linear kernels for haplotype blocks of interest.</li>
 </ul>
 </div>
 <div id="installation" class="section level2">
@@ -363,17 +464,31 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb1-10"><a href="#cb1-10"></a>devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&quot;KosukeHamazaki/RAINBOWR&quot;</span>)</span></code></pre></div>
 <p>If you get some errors via installation, please check if the following packages are correctly installed.</p>
 <ul>
-<li>Rcpp</li>
+<li>Rcpp # install <code>Rtools</code> for Windows user</li>
 <li>RcppEigen</li>
-<li>rrBLUP</li>
-<li>rgl</li>
+<li>rgl # for Linux user please install required libralies in terminal</li>
 <li>tcltk</li>
 <li>Matrix</li>
 <li>cluster</li>
 <li>MASS</li>
+<li>pbmcapply</li>
+<li>optimx</li>
+<li>methods</li>
+<li>ape</li>
+<li>stringr</li>
+<li>pegas</li>
+<li>ggplot2</li>
+<li>ggtree # install from Bioconducter with <code>BiocManager::install(&quot;ggtree&quot;)</code></li>
+<li>scatterpie</li>
+<li>phylobase</li>
+<li>haplotypes</li>
+<li>ggimage</li>
+<li>rrBLUP</li>
+<li>expm</li>
+<li>parallel</li>
+<li>pbapply</li>
 </ul>
 <p>In <code>RAINBOWR</code>, since part of the code is written in <code>Rcpp</code> (<code>C++</code> in <code>R</code>), please check if you can use <code>C++</code> in <code>R</code>. For <code>Windows</code> users, you should install <a href="https://cran.r-project.org/bin/windows/Rtools/"><code>Rtools</code></a>.</p>
-<p>In the near future, we will try to publish <code>RAINBOWR</code> on <code>CRAN</code>.</p>
 <p>If you have some questions about installation, please contact us by e-mail (<a href="mailto:hamazaki@ut-biomet.org" class="email">hamazaki@ut-biomet.org</a>).</p>
 </div>
 <div id="usage" class="section level2">
@@ -382,63 +497,72 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a><span class="co">### Import RAINBOWR</span></span>
 <span id="cb2-2"><a href="#cb2-2"></a><span class="kw">require</span>(RAINBOWR)</span>
 <span id="cb2-3"><a href="#cb2-3"></a><span class="co">#&gt; Loading required package: RAINBOWR</span></span>
-<span id="cb2-4"><a href="#cb2-4"></a></span>
-<span id="cb2-5"><a href="#cb2-5"></a><span class="co">### Load example datasets</span></span>
-<span id="cb2-6"><a href="#cb2-6"></a><span class="kw">data</span>(<span class="st">&quot;Rice_Zhao_etal&quot;</span>)</span>
-<span id="cb2-7"><a href="#cb2-7"></a>Rice_geno_score &lt;-<span class="st"> </span>Rice_Zhao_etal<span class="op">$</span>genoScore</span>
-<span id="cb2-8"><a href="#cb2-8"></a>Rice_geno_map &lt;-<span class="st"> </span>Rice_Zhao_etal<span class="op">$</span>genoMap</span>
-<span id="cb2-9"><a href="#cb2-9"></a>Rice_pheno &lt;-<span class="st"> </span>Rice_Zhao_etal<span class="op">$</span>pheno</span>
-<span id="cb2-10"><a href="#cb2-10"></a></span>
-<span id="cb2-11"><a href="#cb2-11"></a><span class="co">### View each dataset</span></span>
-<span id="cb2-12"><a href="#cb2-12"></a><span class="kw">See</span>(Rice_geno_score)</span>
-<span id="cb2-13"><a href="#cb2-13"></a><span class="co">#&gt;                  L1        L2        L3        L4        L5        L6</span></span>
-<span id="cb2-14"><a href="#cb2-14"></a><span class="co">#&gt; class     &lt;integer&gt; &lt;integer&gt; &lt;integer&gt; &lt;integer&gt; &lt;integer&gt; &lt;integer&gt;</span></span>
-<span id="cb2-15"><a href="#cb2-15"></a><span class="co">#&gt; id1000223         1         1        -1        -1        -1        -1</span></span>
-<span id="cb2-16"><a href="#cb2-16"></a><span class="co">#&gt; id1000556        -1        -1         1         1        -1         1</span></span>
-<span id="cb2-17"><a href="#cb2-17"></a><span class="co">#&gt; id1000673        -1         1        -1         1        -1         1</span></span>
-<span id="cb2-18"><a href="#cb2-18"></a><span class="co">#&gt; id1000830        -1         1         1         1         1         1</span></span>
-<span id="cb2-19"><a href="#cb2-19"></a><span class="co">#&gt; id1000955        -1         1         1         1        -1         1</span></span>
-<span id="cb2-20"><a href="#cb2-20"></a><span class="co">#&gt; id1001073        -1        -1        -1         1         1        -1</span></span>
-<span id="cb2-21"><a href="#cb2-21"></a><span class="co">#&gt; [1] &quot;class: data.frame&quot;</span></span>
-<span id="cb2-22"><a href="#cb2-22"></a><span class="co">#&gt; [1] &quot;dimension: 1311 x 395&quot;</span></span>
-<span id="cb2-23"><a href="#cb2-23"></a><span class="kw">See</span>(Rice_geno_map)</span>
-<span id="cb2-24"><a href="#cb2-24"></a><span class="co">#&gt;              marker       chr       pos</span></span>
-<span id="cb2-25"><a href="#cb2-25"></a><span class="co">#&gt; class      &lt;factor&gt; &lt;integer&gt; &lt;integer&gt;</span></span>
-<span id="cb2-26"><a href="#cb2-26"></a><span class="co">#&gt; id1000223 id1000223         1    420422</span></span>
-<span id="cb2-27"><a href="#cb2-27"></a><span class="co">#&gt; id1000556 id1000556         1    655693</span></span>
-<span id="cb2-28"><a href="#cb2-28"></a><span class="co">#&gt; id1000673 id1000673         1    740153</span></span>
-<span id="cb2-29"><a href="#cb2-29"></a><span class="co">#&gt; id1000830 id1000830         1    913806</span></span>
-<span id="cb2-30"><a href="#cb2-30"></a><span class="co">#&gt; id1000955 id1000955         1   1041748</span></span>
-<span id="cb2-31"><a href="#cb2-31"></a><span class="co">#&gt; id1001073 id1001073         1   1172387</span></span>
-<span id="cb2-32"><a href="#cb2-32"></a><span class="co">#&gt; [1] &quot;class: data.frame&quot;</span></span>
-<span id="cb2-33"><a href="#cb2-33"></a><span class="co">#&gt; [1] &quot;dimension: 1311 x 3&quot;</span></span>
-<span id="cb2-34"><a href="#cb2-34"></a><span class="kw">See</span>(Rice_pheno)</span>
-<span id="cb2-35"><a href="#cb2-35"></a><span class="co">#&gt;       Flowering.time.at.Arkansas Flowering.time.at.Faridpur</span></span>
-<span id="cb2-36"><a href="#cb2-36"></a><span class="co">#&gt; class                  &lt;numeric&gt;                  &lt;integer&gt;</span></span>
-<span id="cb2-37"><a href="#cb2-37"></a><span class="co">#&gt; L1                   75.08333333                         64</span></span>
-<span id="cb2-38"><a href="#cb2-38"></a><span class="co">#&gt; L3                          89.5                         66</span></span>
-<span id="cb2-39"><a href="#cb2-39"></a><span class="co">#&gt; L4                          94.5                         67</span></span>
-<span id="cb2-40"><a href="#cb2-40"></a><span class="co">#&gt; L5                          87.5                         70</span></span>
-<span id="cb2-41"><a href="#cb2-41"></a><span class="co">#&gt; L6                   89.08333333                         73</span></span>
-<span id="cb2-42"><a href="#cb2-42"></a><span class="co">#&gt; L7                           105                       &lt;NA&gt;</span></span>
-<span id="cb2-43"><a href="#cb2-43"></a><span class="co">#&gt;       Flowering.time.at.Aberdeen FT.ratio.of.Arkansas.Aberdeen</span></span>
-<span id="cb2-44"><a href="#cb2-44"></a><span class="co">#&gt; class                  &lt;integer&gt;                     &lt;numeric&gt;</span></span>
-<span id="cb2-45"><a href="#cb2-45"></a><span class="co">#&gt; L1                            81                   0.926954733</span></span>
-<span id="cb2-46"><a href="#cb2-46"></a><span class="co">#&gt; L3                            83                   1.078313253</span></span>
-<span id="cb2-47"><a href="#cb2-47"></a><span class="co">#&gt; L4                            93                   1.016129032</span></span>
-<span id="cb2-48"><a href="#cb2-48"></a><span class="co">#&gt; L5                           108                   0.810185185</span></span>
-<span id="cb2-49"><a href="#cb2-49"></a><span class="co">#&gt; L6                           101                   0.882013201</span></span>
-<span id="cb2-50"><a href="#cb2-50"></a><span class="co">#&gt; L7                           158                   0.664556962</span></span>
-<span id="cb2-51"><a href="#cb2-51"></a><span class="co">#&gt;       FT.ratio.of.Faridpur.Aberdeen Culm.habit</span></span>
-<span id="cb2-52"><a href="#cb2-52"></a><span class="co">#&gt; class                     &lt;numeric&gt;  &lt;numeric&gt;</span></span>
-<span id="cb2-53"><a href="#cb2-53"></a><span class="co">#&gt; L1                      0.790123457          4</span></span>
-<span id="cb2-54"><a href="#cb2-54"></a><span class="co">#&gt; L3                      0.795180723        7.5</span></span>
-<span id="cb2-55"><a href="#cb2-55"></a><span class="co">#&gt; L4                      0.720430108          6</span></span>
-<span id="cb2-56"><a href="#cb2-56"></a><span class="co">#&gt; L5                      0.648148148        3.5</span></span>
-<span id="cb2-57"><a href="#cb2-57"></a><span class="co">#&gt; L6                      0.722772277          6</span></span>
-<span id="cb2-58"><a href="#cb2-58"></a><span class="co">#&gt; L7                             &lt;NA&gt;          3</span></span>
-<span id="cb2-59"><a href="#cb2-59"></a><span class="co">#&gt; [1] &quot;class: data.frame&quot;</span></span>
-<span id="cb2-60"><a href="#cb2-60"></a><span class="co">#&gt; [1] &quot;dimension: 413 x 36&quot;</span></span></code></pre></div>
+<span id="cb2-4"><a href="#cb2-4"></a><span class="co">#&gt; Registered S3 method overwritten by &#39;spdep&#39;:</span></span>
+<span id="cb2-5"><a href="#cb2-5"></a><span class="co">#&gt;   method   from</span></span>
+<span id="cb2-6"><a href="#cb2-6"></a><span class="co">#&gt;   plot.mst ape</span></span>
+<span id="cb2-7"><a href="#cb2-7"></a><span class="co">#&gt; Registered S3 method overwritten by &#39;pegas&#39;:</span></span>
+<span id="cb2-8"><a href="#cb2-8"></a><span class="co">#&gt;   method      from</span></span>
+<span id="cb2-9"><a href="#cb2-9"></a><span class="co">#&gt;   print.amova ade4</span></span>
+<span id="cb2-10"><a href="#cb2-10"></a><span class="co">#&gt; Registered S3 method overwritten by &#39;treeio&#39;:</span></span>
+<span id="cb2-11"><a href="#cb2-11"></a><span class="co">#&gt;   method     from</span></span>
+<span id="cb2-12"><a href="#cb2-12"></a><span class="co">#&gt;   root.phylo ape</span></span>
+<span id="cb2-13"><a href="#cb2-13"></a></span>
+<span id="cb2-14"><a href="#cb2-14"></a><span class="co">### Load example datasets</span></span>
+<span id="cb2-15"><a href="#cb2-15"></a><span class="kw">data</span>(<span class="st">&quot;Rice_Zhao_etal&quot;</span>)</span>
+<span id="cb2-16"><a href="#cb2-16"></a>Rice_geno_score &lt;-<span class="st"> </span>Rice_Zhao_etal<span class="op">$</span>genoScore</span>
+<span id="cb2-17"><a href="#cb2-17"></a>Rice_geno_map &lt;-<span class="st"> </span>Rice_Zhao_etal<span class="op">$</span>genoMap</span>
+<span id="cb2-18"><a href="#cb2-18"></a>Rice_pheno &lt;-<span class="st"> </span>Rice_Zhao_etal<span class="op">$</span>pheno</span>
+<span id="cb2-19"><a href="#cb2-19"></a></span>
+<span id="cb2-20"><a href="#cb2-20"></a><span class="co">### View each dataset</span></span>
+<span id="cb2-21"><a href="#cb2-21"></a><span class="kw">See</span>(Rice_geno_score)</span>
+<span id="cb2-22"><a href="#cb2-22"></a><span class="co">#&gt;                  L1        L2        L3        L4        L5        L6</span></span>
+<span id="cb2-23"><a href="#cb2-23"></a><span class="co">#&gt; class     &lt;integer&gt; &lt;integer&gt; &lt;integer&gt; &lt;integer&gt; &lt;integer&gt; &lt;integer&gt;</span></span>
+<span id="cb2-24"><a href="#cb2-24"></a><span class="co">#&gt; id1000223         1         1        -1        -1        -1        -1</span></span>
+<span id="cb2-25"><a href="#cb2-25"></a><span class="co">#&gt; id1000556        -1        -1         1         1        -1         1</span></span>
+<span id="cb2-26"><a href="#cb2-26"></a><span class="co">#&gt; id1000673        -1         1        -1         1        -1         1</span></span>
+<span id="cb2-27"><a href="#cb2-27"></a><span class="co">#&gt; id1000830        -1         1         1         1         1         1</span></span>
+<span id="cb2-28"><a href="#cb2-28"></a><span class="co">#&gt; id1000955        -1         1         1         1        -1         1</span></span>
+<span id="cb2-29"><a href="#cb2-29"></a><span class="co">#&gt; id1001073        -1        -1        -1         1         1        -1</span></span>
+<span id="cb2-30"><a href="#cb2-30"></a><span class="co">#&gt; [1] &quot;class: data.frame&quot;</span></span>
+<span id="cb2-31"><a href="#cb2-31"></a><span class="co">#&gt; [1] &quot;dimension: 1311 x 395&quot;</span></span>
+<span id="cb2-32"><a href="#cb2-32"></a><span class="kw">See</span>(Rice_geno_map)</span>
+<span id="cb2-33"><a href="#cb2-33"></a><span class="co">#&gt;              marker       chr       pos</span></span>
+<span id="cb2-34"><a href="#cb2-34"></a><span class="co">#&gt; class      &lt;factor&gt; &lt;integer&gt; &lt;integer&gt;</span></span>
+<span id="cb2-35"><a href="#cb2-35"></a><span class="co">#&gt; id1000223 id1000223         1    420422</span></span>
+<span id="cb2-36"><a href="#cb2-36"></a><span class="co">#&gt; id1000556 id1000556         1    655693</span></span>
+<span id="cb2-37"><a href="#cb2-37"></a><span class="co">#&gt; id1000673 id1000673         1    740153</span></span>
+<span id="cb2-38"><a href="#cb2-38"></a><span class="co">#&gt; id1000830 id1000830         1    913806</span></span>
+<span id="cb2-39"><a href="#cb2-39"></a><span class="co">#&gt; id1000955 id1000955         1   1041748</span></span>
+<span id="cb2-40"><a href="#cb2-40"></a><span class="co">#&gt; id1001073 id1001073         1   1172387</span></span>
+<span id="cb2-41"><a href="#cb2-41"></a><span class="co">#&gt; [1] &quot;class: data.frame&quot;</span></span>
+<span id="cb2-42"><a href="#cb2-42"></a><span class="co">#&gt; [1] &quot;dimension: 1311 x 3&quot;</span></span>
+<span id="cb2-43"><a href="#cb2-43"></a><span class="kw">See</span>(Rice_pheno)</span>
+<span id="cb2-44"><a href="#cb2-44"></a><span class="co">#&gt;       Flowering.time.at.Arkansas Flowering.time.at.Faridpur</span></span>
+<span id="cb2-45"><a href="#cb2-45"></a><span class="co">#&gt; class                  &lt;numeric&gt;                  &lt;integer&gt;</span></span>
+<span id="cb2-46"><a href="#cb2-46"></a><span class="co">#&gt; L1                   75.08333333                         64</span></span>
+<span id="cb2-47"><a href="#cb2-47"></a><span class="co">#&gt; L3                          89.5                         66</span></span>
+<span id="cb2-48"><a href="#cb2-48"></a><span class="co">#&gt; L4                          94.5                         67</span></span>
+<span id="cb2-49"><a href="#cb2-49"></a><span class="co">#&gt; L5                          87.5                         70</span></span>
+<span id="cb2-50"><a href="#cb2-50"></a><span class="co">#&gt; L6                   89.08333333                         73</span></span>
+<span id="cb2-51"><a href="#cb2-51"></a><span class="co">#&gt; L7                           105                       &lt;NA&gt;</span></span>
+<span id="cb2-52"><a href="#cb2-52"></a><span class="co">#&gt;       Flowering.time.at.Aberdeen FT.ratio.of.Arkansas.Aberdeen</span></span>
+<span id="cb2-53"><a href="#cb2-53"></a><span class="co">#&gt; class                  &lt;integer&gt;                     &lt;numeric&gt;</span></span>
+<span id="cb2-54"><a href="#cb2-54"></a><span class="co">#&gt; L1                            81                   0.926954733</span></span>
+<span id="cb2-55"><a href="#cb2-55"></a><span class="co">#&gt; L3                            83                   1.078313253</span></span>
+<span id="cb2-56"><a href="#cb2-56"></a><span class="co">#&gt; L4                            93                   1.016129032</span></span>
+<span id="cb2-57"><a href="#cb2-57"></a><span class="co">#&gt; L5                           108                   0.810185185</span></span>
+<span id="cb2-58"><a href="#cb2-58"></a><span class="co">#&gt; L6                           101                   0.882013201</span></span>
+<span id="cb2-59"><a href="#cb2-59"></a><span class="co">#&gt; L7                           158                   0.664556962</span></span>
+<span id="cb2-60"><a href="#cb2-60"></a><span class="co">#&gt;       FT.ratio.of.Faridpur.Aberdeen Culm.habit</span></span>
+<span id="cb2-61"><a href="#cb2-61"></a><span class="co">#&gt; class                     &lt;numeric&gt;  &lt;numeric&gt;</span></span>
+<span id="cb2-62"><a href="#cb2-62"></a><span class="co">#&gt; L1                      0.790123457          4</span></span>
+<span id="cb2-63"><a href="#cb2-63"></a><span class="co">#&gt; L3                      0.795180723        7.5</span></span>
+<span id="cb2-64"><a href="#cb2-64"></a><span class="co">#&gt; L4                      0.720430108          6</span></span>
+<span id="cb2-65"><a href="#cb2-65"></a><span class="co">#&gt; L5                      0.648148148        3.5</span></span>
+<span id="cb2-66"><a href="#cb2-66"></a><span class="co">#&gt; L6                      0.722772277          6</span></span>
+<span id="cb2-67"><a href="#cb2-67"></a><span class="co">#&gt; L7                             &lt;NA&gt;          3</span></span>
+<span id="cb2-68"><a href="#cb2-68"></a><span class="co">#&gt; [1] &quot;class: data.frame&quot;</span></span>
+<span id="cb2-69"><a href="#cb2-69"></a><span class="co">#&gt; [1] &quot;dimension: 413 x 36&quot;</span></span></code></pre></div>
 <p>You can check the original data format by <code>See</code> function. Then, select one trait (here, <code>Flowering.time.at.Arkansas</code>) for example.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a><span class="co">### Select one trait for example</span></span>
 <span id="cb3-2"><a href="#cb3-2"></a>trait.name &lt;-<span class="st"> &quot;Flowering.time.at.Arkansas&quot;</span></span>
@@ -449,7 +573,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb4-3"><a href="#cb4-3"></a>MAF.cut.res &lt;-<span class="st"> </span><span class="kw">MAF.cut</span>(<span class="dt">x.0 =</span> x<span class="fl">.0</span>, <span class="dt">map.0 =</span> Rice_geno_map)</span>
 <span id="cb4-4"><a href="#cb4-4"></a>x &lt;-<span class="st"> </span>MAF.cut.res<span class="op">$</span>x</span>
 <span id="cb4-5"><a href="#cb4-5"></a>map &lt;-<span class="st"> </span>MAF.cut.res<span class="op">$</span>map</span></code></pre></div>
-<p>Next, we estimate additive genomic relationship matrix (GRM) by using <code>rrBLUP</code> package.</p>
+<p>Next, we estimate additive genomic relationship matrix (GRM) by using <code>calcGRM</code> function.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="co">### Estimate genomic relationship matrix (GRM) </span></span>
 <span id="cb5-2"><a href="#cb5-2"></a>K.A &lt;-<span class="st"> </span><span class="kw">calcGRM</span>(<span class="dt">genoMat =</span> x)</span></code></pre></div>
 <p>Next, we modify these data into the GWAS format of <code>RAINBOWR</code> by <code>modify.data</code> function.</p>
@@ -506,7 +630,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb7-4"><a href="#cb7-4"></a>                           <span class="dt">ZETA =</span> ZETA, <span class="dt">n.PC =</span> <span class="dv">4</span>, <span class="dt">P3D =</span> <span class="ot">TRUE</span>, <span class="dt">count =</span> <span class="ot">FALSE</span>)</span>
 <span id="cb7-5"><a href="#cb7-5"></a><span class="co">#&gt; [1] &quot;GWAS for trait: Flowering.time.at.Arkansas&quot;</span></span>
 <span id="cb7-6"><a href="#cb7-6"></a><span class="co">#&gt; [1] &quot;Variance components estimated. Testing markers.&quot;</span></span>
-<span id="cb7-7"><a href="#cb7-7"></a><span class="co">#&gt; Time difference of 5.840135 secs</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="co">#&gt; Time difference of 4.550588 secs</span></span>
 <span id="cb7-8"><a href="#cb7-8"></a><span class="kw">See</span>(normal.res<span class="op">$</span>D)  <span class="co">### Column 4 contains -log10(p) values for markers</span></span>
 <span id="cb7-9"><a href="#cb7-9"></a><span class="co">#&gt;          marker     chrom       pos Flowering.time.at.Arkansas</span></span>
 <span id="cb7-10"><a href="#cb7-10"></a><span class="co">#&gt; class  &lt;factor&gt; &lt;integer&gt; &lt;integer&gt;                  &lt;numeric&gt;</span></span>
@@ -526,7 +650,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb8-4"><a href="#cb8-4"></a>                              <span class="dt">n.PC =</span> <span class="dv">4</span>, <span class="dt">test.method =</span> <span class="st">&quot;LR&quot;</span>, <span class="dt">kernel.method =</span> <span class="st">&quot;linear&quot;</span>, <span class="dt">gene.set =</span> <span class="ot">NULL</span>,</span>
 <span id="cb8-5"><a href="#cb8-5"></a>                              <span class="dt">test.effect =</span> <span class="st">&quot;additive&quot;</span>, <span class="dt">window.size.half =</span> <span class="dv">5</span>, <span class="dt">window.slide =</span> <span class="dv">11</span>)</span>
 <span id="cb8-6"><a href="#cb8-6"></a><span class="co">#&gt; [1] &quot;GWAS for trait: Flowering.time.at.Arkansas&quot;</span></span>
-<span id="cb8-7"><a href="#cb8-7"></a><span class="co">#&gt; Time difference of 1.324579 mins</span></span>
+<span id="cb8-7"><a href="#cb8-7"></a><span class="co">#&gt; Time difference of 1.081395 mins</span></span>
 <span id="cb8-8"><a href="#cb8-8"></a></span>
 <span id="cb8-9"><a href="#cb8-9"></a><span class="kw">See</span>(SNP_set.res<span class="op">$</span>D)  <span class="co">### Column 4 contains -log10(p) values for markers</span></span>
 <span id="cb8-10"><a href="#cb8-10"></a><span class="co">#&gt;          marker     chrom       pos Flowering.time.at.Arkansas</span></span>
@@ -598,6 +722,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <p>Listgarten, J. et al. (2013) A powerful and efficient set test for genetic markers that handles confounders. Bioinformatics. 29(12): 1526-1533.</p>
 <p>Lippert, C. et al. (2014) Greater power and computational efficiency for kernel-based association testing of sets of genetic variants. Bioinformatics. 30(22): 3206-3214.</p>
 <p>Jiang, Y. and Reif, J.C. (2015) Modeling epistasis in genomic selection. Genetics. 201(2): 759-768.</p>
+<p>Hamazaki, K. and Iwata, H. (2020) RAINBOW: Haplotype-based genome-wide association study using a novel SNP-set method. PLOS Computational Biology, 16(2): e1007663.</p>
 </div>
 
 

@@ -1,6 +1,6 @@
-05fbe3c197da2c935dee86a9fdaaf46c *DESCRIPTION
+2ae38f300ad00ae61171c58d4e87d72f *DESCRIPTION
 7bf1ccc26e5826ec963a19aff15d41f7 *LICENSE
-8a06c5ee4fe041911487c0944b23e999 *NAMESPACE
+fa19945f1f4c3597653ac5e3bee25b5c *NAMESPACE
 76ab24efbbfd58beb4ec01b27f04a1ea *R/EMM_functions_cpp.R
 fdd6c8337d500a5bae4c2f8d31c7e3d8 *R/RAINBOWR.R
 db719ebefcce7858c6144746718bfeda *R/RGWAS.epistasis.R
@@ -25,15 +25,15 @@ d1ea7ae9ccef74c9999ecce486bb62bf *R/examples/EMM.cpp_example.R
 29f70eb4f8b81f084ca1494458b96c32 *R/examples/RGWAS.twostep_example.R
 be331c0e0b0793f9ed5bf9c7562cdda6 *R/functions_for_RGWAS.R
 77cefcede80e5d9afdda195cb40008a7 *R/genetrait.R
-2056446a98e836896685ab9e0a5ef7a4 *R/other_useful_functions.R
-aded6bdf71b51b0d98d1887743f28416 *README.md
-bd74eddc2b61fcb8a9e77bf16e54cfde *build/vignette.rds
+1c62b1741a6fff14eb372f830685a354 *R/other_useful_functions.R
+5d8ce1b718f6edb640ceb0532ec5b112 *README.md
+6160d581fe10d9d851a05058684d38ca *build/vignette.rds
 31348c29e4ffc7dc523c4248f3df0b72 *data/Rice_Zhao_etal.rda
 7c22e8bd5c047dad605d2b0b401627ba *data/datalist
 8eb3b4de1fea9417be9185fd741eb1da *inst/CITATION
 4648a5b0f65420b514c57a62c7a37e4d *inst/doc/RAINBOWR.R
-c2892933030c304f2a4dc67f0d0ea3a2 *inst/doc/RAINBOWR.Rmd
-6817a37a6e473dfc66ff65b25b09cc3c *inst/doc/RAINBOWR.html
+f37450d6594aeaa99328a6186828e004 *inst/doc/RAINBOWR.Rmd
+63a836d6fdfd335f99f5cea42b32a06d *inst/doc/RAINBOWR.html
 fc43588133c424a67ff4d5ecce2267a6 *man/CalcThreshold.Rd
 7f37e6b7a2e4f6f4a1e6f3654d93a7be *man/EM3.cpp.Rd
 141dff236f097b7f9408dfc4e3093169 *man/EM3.linker.cpp.Rd
@@ -57,7 +57,8 @@ d2b00bec97db2b56e92e856810f46543 *man/See.Rd
 23beb8274392b21246665c8a209fc461 *man/calcGRM.Rd
 b82b49da99fb39158681e76c67291ad2 *man/cumsumPos.Rd
 00ee68461661141ac35c2337d0f8749a *man/design.Z.Rd
-cfec30984bb72823bbf5b28977d66108 *man/estPhylo.Rd
+89cbf72369902894f9f30d8e968f3bc0 *man/estNetwork.Rd
+e45f07023f7db6bf5346ac42c3a2a378 *man/estPhylo.Rd
 1b5d7658f519b40d0a72e724d94a20a8 *man/genesetmap.Rd
 f0930f418d8f2081b0bf1974fc13c5f7 *man/genetrait.Rd
 dee7b90441aa20d5a7c84f0d09a377ad *man/make.full.Rd
@@ -66,6 +67,8 @@ e495937f8a4a321a219fa6aa80cb7a8b *man/manhattan.plus.Rd
 edaa5b668ae14353ed1f245f5b746920 *man/manhattan2.Rd
 f751c85890b99c9101bc072ac261791f *man/manhattan3.Rd
 d3bfa0bc2a7eb245148af48ca0b01c7f *man/modify.data.Rd
+12b74c263990b65ee5828bc7b1c593e9 *man/plotHaploNetwork.Rd
+aac6fbd74a8c11378a8660f5bc6254f7 *man/plotPhyloTree.Rd
 98440e83f68a599e7a9532ba64047e1c *man/qq.Rd
 155437afeab245493676ca1272a67f85 *man/score.calc.LR.MC.Rd
 f8f04b4c83f6ec53a0edae9cc222d5b9 *man/score.calc.LR.Rd
@@ -81,4 +84,4 @@ e933603db534dd978f8a364ce4d7eb78 *man/spectralG.cpp.Rd
 360bba514cc60960abf248914906903e *man/welcome_to_RGWAS.Rd
 9c749f17a28fb67dbb09e49ef70dc35d *src/EMM_functions.cpp
 c50d9de009861bf6f34426d4f654120e *src/RcppExports.cpp
-c2892933030c304f2a4dc67f0d0ea3a2 *vignettes/RAINBOWR.Rmd
+f37450d6594aeaa99328a6186828e004 *vignettes/RAINBOWR.Rmd
