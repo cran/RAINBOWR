@@ -365,7 +365,7 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
                      distMat = NULL, distMethod = "manhattan", evolutionDist = FALSE,
                      subpopInfo = NULL, groupingMethod = "kmedoids",
                      nGrp = 3, nIterClustering = 100, kernelTypes = "addNOIA",
-                     nCores = parallel::detectCores(), hOpt = "optimized",
+                     nCores = parallel::detectCores() - 1, hOpt = "optimized",
                      hOpt2 = "optimized", maxIter = 20, rangeHStart = 10 ^ c(-1:1),
                      saveName = NULL, saveStyle = "png",
                      pchBase = c(1, 16), colNodeBase = c(2, 4), colTipBase = c(3, 5, 6),
@@ -410,10 +410,12 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
           maxNoNow <- sample(maxNo, 1)
           clusterNos <- match(kmResList[[maxNoNow]]$cluster, unique(kmResList[[maxNoNow]]$cluster))
         } else if (groupingMethod == "kmedoids") {
-          kmResNow <- cluster::pam(x = M, k = nGrp)
+          kmResNow <- cluster::pam(x = M, k = nGrp, pamonce = 5)
           clusterNos <- match(kmResNow$clustering, unique(kmResNow$clustering))
         } else if (groupingMethod == "hclust") {
-          tre <- hclust(dist(M, method = distMethod))
+          distMat <- Rfast::Dist(x = M, method = distMethod)
+          rownames(distMat) <- colnames(distMat) <- rownames(M)
+          tre <- hclust(as.dist(m = distMat))
           cutreeRes <- cutree(tree = tre, k = nGrp)
           clusterNos <- match(cutreeRes, unique(cutreeRes))
         } else {
@@ -535,7 +537,8 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
     nMrkInBlock <- ncol(blockInterest)
     
     if (is.null(distMat)) {
-      distMat <- as.matrix(dist(blockInterestUniqueSorted, method = distMethod))
+      distMat <- Rfast::Dist(x = blockInterestUniqueSorted, method = distMethod)
+      rownames(distMat) <- colnames(distMat) <- rownames(blockInterestUniqueSorted)
     }
     
     if (evolutionDist) {
@@ -549,7 +552,7 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
     }
     
     njRes <- ape::nj(X = as.dist(dist4Nj))
-    distNodes <- ape::dist.nodes(njRes) / nMrkInBlock
+    distNodes <- ape::dist.nodes(njRes) / sqrt(nMrkInBlock)
     
     minuslog10ps <- c() 
     gvEstTotals <- gvEstTotalForLines <- 
@@ -576,7 +579,7 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
                                                        dims = c(nLine, nHaplo),
                                                        dimnames = list(lineNames, haploNames)))
         
-        hInv <- median(distNodes[upper.tri(distNodes)])
+        hInv <- median((distNodes ^ 2)[upper.tri(distNodes ^ 2)])
         h <- 1 / hInv
         hStarts <- h * rangeHStart
         hStarts <- split(hStarts, factor(1:length(rangeHStart)))
@@ -589,7 +592,7 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
             
             maximizeFunc <- function(h) {
               if (kernelType == "phylo") {
-                gKernel <- exp(- h * distNodes)
+                gKernel <- exp(- h * distNodes ^ 2)
                 
                 gKernelPart <- gKernel[1:nHaplo, 1:nHaplo]
               } else {
@@ -599,9 +602,12 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
               }
               
               ZETANow <- c(ZETA, list(Part = list(Z = ZgKernelPart, K = gKernelPart)))
-              EM3Res <- EM3.cpp(y = pheno[, 2], ZETA = ZETANow)
-              LL <- EM3Res$LL
-              
+              EM3Res <- try(EM3.cpp(y = pheno[, 2], ZETA = ZETANow), silent = TRUE)
+              if (!("try-error" %in% class(EM3Res))) {
+                LL <- EM3Res$LL
+              } else {
+                LL <- -1e12
+              }
               return(-LL)
             }
             
@@ -616,13 +622,13 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
                                                     return(soln)
                                                   }, mc.cores = nCores)
               } else {
-                solnList <- pbapply::pblapply(X = hStarts,
-                                              FUN = function(h) {
-                                                soln <- nlminb(start = h, objective = maximizeFunc, gradient = NULL, hessian = NULL,
-                                                               lower = 0, upper = 1e06, control = list(iter.max = maxIter))
-                                                
-                                                return(soln)
-                                              }, mc.cores = nCores)
+                solnList <- parallel::mclapply(X = hStarts,
+                                               FUN = function(h) {
+                                                 soln <- nlminb(start = h, objective = maximizeFunc, gradient = NULL, hessian = NULL,
+                                                                lower = 0, upper = 1e06, control = list(iter.max = maxIter))
+                                                 
+                                                 return(soln)
+                                               }, mc.cores = nCores)
               }
               solnNo <- which.min(unlist(lapply(solnList, function(x) x$objective)))
               soln <- solnList[[solnNo]]
@@ -697,11 +703,15 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
             }
             
             maximizeFunc2 <- function(h) {
-              gKernel <- exp(- h * distNodes)
+              gKernel <- exp(- h * distNodes ^ 2)
               ZETA2 <- list(Part = list(Z = ZgKernel, K = gKernel))
               
-              EMMRes <- EMM.cpp(y = gvEst2, ZETA = ZETA2)
-              LL <- EMMRes$LL
+              EMMRes <- try(EMM.cpp(y = gvEst2, ZETA = ZETA2), silent = TRUE)
+              if (!("try-error" %in% class(EMMRes))) {
+                LL <- EMMRes$LL
+              } else {
+                LL <- -1e12
+              }
               
               return(-LL)
             }
@@ -717,13 +727,13 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
                                                      return(soln)
                                                    }, mc.cores = nCores)
               } else {
-                solnList2 <- pbapply::pblapply(X = hStarts,
-                                               FUN = function(h) {
-                                                 soln <- nlminb(start = h, objective = maximizeFunc2, gradient = NULL, hessian = NULL,
-                                                                lower = 0, upper = 1e06, control = list(iter.max = maxIter))
-                                                 
-                                                 return(soln)
-                                               }, mc.cores = nCores)
+                solnList2 <- parallel::mclapply(X = hStarts,
+                                                FUN = function(h) {
+                                                  soln <- nlminb(start = h, objective = maximizeFunc2, gradient = NULL, hessian = NULL,
+                                                                 lower = 0, upper = 1e06, control = list(iter.max = maxIter))
+                                                  
+                                                  return(soln)
+                                                }, mc.cores = nCores)
               }
               solnNo2 <- which.min(unlist(lapply(solnList2, function(x) x$objective)))
               soln2 <- solnList2[[solnNo2]]
@@ -740,7 +750,7 @@ estPhylo <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.set
             stop("`hOpt2` should be either one of 'optimized', 'tuned', or numeric!!")
           }
           
-          gKernel2 <- exp(- hOpt2 * distNodes)
+          gKernel2 <- exp(- hOpt2 * distNodes ^ 2)
           ZETA2 <- list(Part = list(Z = ZgKernel, K = gKernel2))
           
           EMMRes <- EMM.cpp(y = gvEst2, ZETA = ZETA2)
@@ -1227,7 +1237,7 @@ estNetwork <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.s
                        subpopInfo = NULL, groupingMethod = "kmedoids", nGrp = 3, 
                        nIterClustering = 100, iterRmst = 100, networkMethod = "rmst",
                        autogamous = FALSE, probParsimony = 0.95, nMaxHaplo = 1000,
-                       kernelTypes = "addNOIA", nCores = parallel::detectCores(),
+                       kernelTypes = "addNOIA", nCores = parallel::detectCores() - 1,
                        hOpt = "optimized", hOpt2 = "optimized", maxIter = 20,
                        rangeHStart = 10 ^ c(-1:1), saveName = NULL, saveStyle = "png",
                        plotWhichMDS = 1:2, colConnection = c("grey40", "grey60"),
@@ -1275,10 +1285,12 @@ estNetwork <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.s
           maxNoNow <- sample(maxNo, 1)
           clusterNos <- match(kmResList[[maxNoNow]]$cluster, unique(kmResList[[maxNoNow]]$cluster))
         } else if (groupingMethod == "kmedoids") {
-          kmResNow <- cluster::pam(x = M, k = nGrp)
+          kmResNow <- cluster::pam(x = M, k = nGrp, pamonce = 5)
           clusterNos <- match(kmResNow$clustering, unique(kmResNow$clustering))
         } else if (groupingMethod == "hclust") {
-          tre <- hclust(dist(M, method = distMethod))
+          distMat <- Rfast::Dist(x = M, method = distMethod)
+          rownames(distMat) <- colnames(distMat) <- rownames(M)
+          tre <- hclust(as.dist(m = distMat))
           cutreeRes <- cutree(tree = tre, k = nGrp)
           clusterNos <- match(cutreeRes, unique(cutreeRes))
         } else {
@@ -1403,7 +1415,8 @@ estNetwork <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.s
     nMrkInBlock <- ncol(blockInterest)
     
     if (is.null(distMat)) {
-      distMat <- as.matrix(dist(blockInterestUniqueSorted, method = distMethod))
+      distMat <- Rfast::Dist(x = blockInterestUniqueSorted, method = distMethod)
+      rownames(distMat) <- colnames(distMat) <- rownames(blockInterestUniqueSorted)
     }
     
     if (networkMethod == "rmst") {
@@ -1493,7 +1506,8 @@ estNetwork <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.s
       
       haplotypeInfo$haploBlockCompSorted <- blockInterestCompSorted
       
-      distMatComp <- dist(blockInterestCompSorted, method = distMethod)
+      distMatComp <- Rfast::Dist(x = blockInterestCompSorted, method = distMethod)
+      rownames(distMatComp) <- colnames(distMatComp) <- rownames(blockInterestCompSorted)
     } else if (complementHaplo == "phylo") {
       haplotypeInfo$haploBlockCompSorted <- NULL
       
@@ -1686,8 +1700,12 @@ estNetwork <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.s
               }
               
               ZETANow <- c(ZETA, list(Part = list(Z = ZgKernelPart, K = gKernelPart)))
-              EM3Res <- EM3.cpp(y = pheno[, 2], ZETA = ZETANow)
-              LL <- EM3Res$LL
+              EM3Res <- try(EM3.cpp(y = pheno[, 2], ZETA = ZETANow), silent = TRUE)
+              if (!("try-error" %in% class(EM3Res))) {
+                LL <- EM3Res$LL
+              } else {
+                LL <- -1e12
+              }
               
               return(-LL)
             }
@@ -1703,13 +1721,13 @@ estNetwork <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.s
                                                     return(soln)
                                                   }, mc.cores = nCores)
               } else {
-                solnList <- pbapply::pblapply(X = hStarts,
-                                              FUN = function(h) {
-                                                soln <- nlminb(start = h, objective = maximizeFunc, gradient = NULL, hessian = NULL,
-                                                               lower = 0, upper = 1e06, control = list(iter.max = maxIter))
-                                                
-                                                return(soln)
-                                              }, mc.cores = nCores)
+                solnList <- parallel::mclapply(X = hStarts,
+                                               FUN = function(h) {
+                                                 soln <- nlminb(start = h, objective = maximizeFunc, gradient = NULL, hessian = NULL,
+                                                                lower = 0, upper = 1e06, control = list(iter.max = maxIter))
+                                                 
+                                                 return(soln)
+                                               }, mc.cores = nCores)
               }
               solnNo <- which.min(unlist(lapply(solnList, function(x) x$objective)))
               soln <- solnList[[solnNo]]
@@ -1796,8 +1814,12 @@ estNetwork <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.s
                 gKernel <- expm::expm(- h * L)
                 ZETA2 <- list(Part = list(Z = ZgKernel, K = gKernel))
                 
-                EMMRes <- EMM.cpp(y = gvEst2, ZETA = ZETA2)
-                LL <- EMMRes$LL
+                EMMRes <- try(EMM.cpp(y = gvEst2, ZETA = ZETA2), silent = TRUE)
+                if (!("try-error" %in% class(EMMRes))) {
+                  LL <- EMMRes$LL
+                } else {
+                  LL <- -1e12
+                }
                 
                 return(-LL)
               }
@@ -1813,13 +1835,13 @@ estNetwork <- function(blockInterest = NULL, gwasRes = NULL, nTopRes = 1, gene.s
                                                        return(soln)
                                                      }, mc.cores = nCores)
                 } else {
-                  solnList2 <- pbapply::pblapply(X = hStarts,
-                                                 FUN = function(h) {
-                                                   soln <- nlminb(start = h, objective = maximizeFunc2, gradient = NULL, hessian = NULL,
-                                                                  lower = 0, upper = 1e06, control = list(iter.max = maxIter))
-                                                   
-                                                   return(soln)
-                                                 }, mc.cores = nCores)
+                  solnList2 <- parallel::mclapply(X = hStarts,
+                                                  FUN = function(h) {
+                                                    soln <- nlminb(start = h, objective = maximizeFunc2, gradient = NULL, hessian = NULL,
+                                                                   lower = 0, upper = 1e06, control = list(iter.max = maxIter))
+                                                    
+                                                    return(soln)
+                                                  }, mc.cores = nCores)
                 }
                 solnNo2 <- which.min(unlist(lapply(solnList2, function(x) x$objective)))
                 soln2 <- solnList2[[solnNo2]]

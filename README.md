@@ -61,11 +61,12 @@ devtools::install_github("KosukeHamazaki/RAINBOWR")
 ```
 
 If you get some errors via installation, please check if the following packages are correctly installed.
+(We removed a dependency on `rgl` package!)
+
 
 ``` r
 Rcpp,      # install `Rtools` for Windows user
-rgl,       # for Linux user, please install required libralies in terminal
-tcltk,
+plotly,
 Matrix,
 cluster,
 MASS,
@@ -80,11 +81,11 @@ ggtree,      # install from Bioconducter with `BiocManager::install("ggtree")`
 scatterpie,
 phylobase,
 haplotypes,
-ggimage
 rrBLUP,
 expm,
-parallel,
-pbapply
+here,
+htmlwidgets,
+Rfast
 ```
 
 In `RAINBOWR`,  since part of the code is written in `Rcpp` (`C++` in `R`),  please check if you can use `C++` in `R`.

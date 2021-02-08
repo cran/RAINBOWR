@@ -91,13 +91,13 @@
 #' @return
 #' \describe{
 #' \item{$first}{The results of first normal GWAS will be returned.}
+#' \item{$map.epi}{Map information for SNPs which are tested epistatic effects.}
 #' \item{$epistasis}{
 #' \describe{
-#' \item{$map}{Map information for SNPs which are tested epistatic effects.}
 #' \item{$scores}{\describe{
 #' \item{$scores}{This is the matrix which contains -log10(p) calculated by the test about epistasis effects.}
 #' \item{$x, $y}{The information of the positions of SNPs detected by regular GWAS.
-#'  These vectors are used when drawing plots. Each output correspond to the repliction of row and column of scores.}
+#'  These vectors are used when drawing plots. Each output correspond to the replication of row and column of scores.}
 #' \item{$z}{This is a vector of $scores.  This vector is also used when drawing plots.}
 #' }
 #' }
@@ -175,8 +175,11 @@ RGWAS.twostep.epi <- function(pheno, geno, ZETA = NULL, covariate = NULL, covari
   trait.names <- colnames(GWAS.res.first)[4:(4 + n.pheno - 1)]
   map <- geno[, 1:3]
   chr <- map[, 2]
+  if (!is.numeric(chr)) {
+    stop("Chromosome numbers should be `numeric` (not `character`) !!")
+  }
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   pos <- map[,3]
   cum.pos <- pos
@@ -277,7 +280,7 @@ RGWAS.twostep.epi <- function(pheno, geno, ZETA = NULL, covariate = NULL, covari
     if (verbose) {
       print("Now Plotting (3d plot for epistasis). Please Wait.")
     }
-    manhattan3(input = epi.res, cum.pos = cum.pos, plot.epi.3d = plot.epi.3d,
+    manhattan3(input = epi.res, map = RGWAS.epistasis.res$map, cum.pos = cum.pos, plot.epi.3d = plot.epi.3d,
                plot.epi.2d = plot.epi.2d, main.epi.3d = main.epi.3d,
                main.epi.2d = main.epi.2d, saveName = saveName)
 
@@ -297,5 +300,5 @@ RGWAS.twostep.epi <- function(pheno, geno, ZETA = NULL, covariate = NULL, covari
     print(end - start)
   }
 
-  return(list(first = GWAS.res.first, epistasis = all.epi.res))
+  return(list(first = GWAS.res.first, map.epi = RGWAS.epistasis.res$map, epistasis = all.epi.res))
 }

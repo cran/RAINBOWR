@@ -226,10 +226,13 @@ RGWAS.multisnp <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariate
   map <- geno[, 1:3]
   marker <- as.character(map[, 1])
   chr <- map[, 2]
+  if (!is.numeric(chr)) {
+    stop("Chromosome numbers should be `numeric` (not `character`) !!")
+  }
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
-  pos <- map[, 3]
+  pos <- as.double(map[, 3])
   cum.pos <- pos
   if(length(chr.tab) != 1){
     for(i in 1:(chr.max - 1)){
@@ -360,12 +363,12 @@ RGWAS.multisnp <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariate
     S <- spI - tcrossprod(X.now %*% solve(crossprod(X.now)), X.now)
 
     if(length(ZETA) > 1){
-      EMM.res0 <- EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now,
+      EMM.res0 <- EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now, n.core = n.core,
                           n.thres = 450, REML = TRUE, pred = FALSE)
 
       weights <- EMM.res0$weights
     }else{
-      EMM.res0 <- EMM.cpp(y = y, X = X.now, ZETA = ZETA.now,
+      EMM.res0 <- EMM.cpp(y = y, X = X.now, ZETA = ZETA.now, n.core = n.core,
                            n.thres = 450, REML = TRUE)
       weights <- 1
     }
@@ -421,7 +424,7 @@ RGWAS.multisnp <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariate
                                      weighting.center = weighting.center, weighting.other = weighting.other,
                                      gene.set = gene.set, min.MAF = min.MAF, count = count)
         }else{
-          scores <- score.calc.score.MC(M.now = M.now, ZETA.now = ZETA.now, y = y,
+          scores <- score.calc.score.MC(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now, 
                                         LL0 = LL0, Gu = Gu, Ge = Ge, P0 = P0, n.core = n.core, map = map,
                                         kernel.method = kernel.method, kernel.h = kernel.h, haplotype = haplotype,
                                         num.hap = num.hap, test.effect = test.effect, window.size.half = window.size.half,
@@ -432,14 +435,14 @@ RGWAS.multisnp <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariate
     }else {
       if(test.method == "LR"){
         scores <- score.calc.LR(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now, LL0 = LL0,
-                                eigen.SGS = eigen.SGS, eigen.G = eigen.G, map = map, optimizer = optimizer,
+                                eigen.SGS = eigen.SGS, eigen.G = eigen.G, n.core = n.core, map = map, optimizer = optimizer,
                                 kernel.method = kernel.method, kernel.h = kernel.h, haplotype = haplotype,
                                 num.hap = num.hap, test.effect = test.effect, window.size.half = window.size.half,
                                 window.slide = window.slide, chi0.mixture = chi0.mixture,
                                 weighting.center = weighting.center, weighting.other = weighting.other,
                                 gene.set = gene.set, min.MAF = min.MAF, count = count)
       }else{
-        scores <- score.calc.score(M.now = M.now, ZETA.now = ZETA.now, y = y,
+        scores <- score.calc.score(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now, 
                                    LL0 = LL0, Gu = Gu, Ge = Ge, P0 = P0, map = map,
                                    kernel.method = kernel.method, kernel.h = kernel.h, haplotype = haplotype,
                                    num.hap = num.hap, test.effect = test.effect, window.size.half = window.size.half,

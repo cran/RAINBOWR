@@ -192,10 +192,13 @@ RGWAS.normal <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariate.f
   map <- geno[, 1:3]
   marker <- as.character(map[, 1])
   chr <- map[, 2]
+  if (!is.numeric(chr)) {
+    stop("Chromosome numbers should be `numeric` (not `character`) !!")
+  }
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
-  pos <- map[, 3]
+  pos <- as.double(map[, 3])
   cum.pos <- pos
   if(length(chr.tab) != 1){
     for(i in 1:(chr.max - 1)){
@@ -298,10 +301,10 @@ RGWAS.normal <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariate.f
     #### Calculate Hinv at first ####
     if(P3D){
       if(length(ZETA) > 1){
-        EMM.res0 <- EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now,
+        EMM.res0 <- EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now, n.core = n.core,
                             n.thres = 450, REML = TRUE, pred = FALSE)
       }else{
-        EMM.res0 <- EMM.cpp(y = y, X = X.now, ZETA = ZETA.now,
+        EMM.res0 <- EMM.cpp(y = y, X = X.now, ZETA = ZETA.now, n.core = n.core,
                             n.thres = 450, REML = TRUE)
       }
 
@@ -330,12 +333,14 @@ RGWAS.normal <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariate.f
 
     #### Calculating the value of -log10(p) for each SNPs ####
     if ((n.core > 1) & requireNamespace("parallel", quietly = TRUE)) {
-      scores <- score.calc.MC(M.now = M.now, ZETA.now = ZETA.now, y = y,
-                   X.now = X.now, Hinv = Hinv, P3D = P3D, eigen.G = eigen.G,
-                   optimizer = optimizer, min.MAF = min.MAF, count = count)
+      scores <- score.calc.MC(M.now = M.now, ZETA.now = ZETA.now, y = y, 
+                              X.now = X.now, Hinv = Hinv, P3D = P3D, eigen.G = eigen.G,
+                              n.core = n.core, optimizer = optimizer, 
+                              min.MAF = min.MAF, count = count)
     } else {
-      scores <- score.calc(M.now, ZETA.now = ZETA.now, y = y, X.now = X.now, Hinv = Hinv,
-                           optimizer = optimizer, P3D = P3D, eigen.G = eigen.G, min.MAF = min.MAF, count = count)
+      scores <- score.calc(M.now, ZETA.now = ZETA.now, y = y, X.now = X.now,
+                           Hinv = Hinv, n.core = n.core, optimizer = optimizer,
+                           P3D = P3D, eigen.G = eigen.G, min.MAF = min.MAF, count = count)
     }
 
     if (plot.qq) {

@@ -250,7 +250,8 @@ calcGRM = function(genoMat,
     HHt <- tcrossprod(genoMat)
     GRM <- HHt * nInd / sum(diag(HHt))
   } else if (methodGRM == "gaussian") {
-    distMat <- as.matrix(dist(genoMat)) / sqrt(ncol(genoMat))
+    distMat <- Rfast::Dist(x = genoMat) / sqrt(ncol(genoMat))
+    rownames(distMat) <- colnames(distMat) <- rownames(genoMat)
     if ("character" %in% class(kernel.h)) {
       hinv <- median((distMat ^ 2)[upper.tri(distMat ^ 2)])
       h <- 1 / hinv
@@ -260,7 +261,8 @@ calcGRM = function(genoMat,
     
     GRM <- exp(- h * distMat ^ 2)
   } else if (methodGRM == "exponential") {
-    distMat <- as.matrix(dist(genoMat)) / sqrt(ncol(genoMat))
+    distMat <- Rfast::Dist(x = genoMat) / sqrt(ncol(genoMat))
+    rownames(distMat) <- colnames(distMat) <- rownames(genoMat)
     if ("character" %in% class(kernel.h)) {
       hinv <- median((distMat ^ 2)[upper.tri(distMat ^ 2)])
       h <- 1 / hinv
@@ -419,10 +421,13 @@ modify.data <- function(pheno.mat, geno.mat, pheno.labels = NULL, geno.names = N
 cumsumPos <- function(map) {
   marker <- as.character(map[, 1])
   chr <- map[, 2]
-  pos <- map[, 3]
+  if (!is.numeric(chr)) {
+    stop("Chromosome numbers should be `numeric` (not `character`) !!")
+  }
+  pos <- as.double(map[, 3])
   
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   cum.pos <- pos
   if (length(chr.tab) != 1) {
@@ -456,10 +461,13 @@ cumsumPos <- function(map) {
 genesetmap <- function(map, gene.set, cumulative = FALSE) {
   marker <- as.character(map[, 1])
   chr <- map[, 2]
-  pos <- map[, 3]
+  if (!is.numeric(chr)) {
+    stop("Chromosome numbers should be `numeric` (not `character`) !!")
+  }
+  pos <- as.double(map[, 3])
   
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   cum.pos <- cumsumPos(map)
   
@@ -475,6 +483,7 @@ genesetmap <- function(map, gene.set, cumulative = FALSE) {
     id <- mark.id[gene.names == gene.name[k]]
     ids[k, ] <- c(as.character(id[1]), as.character(id[length(id)]))
     num.sel <- match(id, map[, 1])
+    num.sel <- num.sel[!is.na(num.sel)]
     chr.sel <- map[num.sel, 2]
     pos.sel <- map[num.sel, 3]
     cum.pos.sel <- cum.pos[num.sel]
@@ -653,7 +662,7 @@ manhattan2 <- function(input, sig.level = 0.05, method.thres = "BH", cex = 1, pl
   chrom.start <- rep(0, n.chrom)
   chrom.mid <- rep(0, n.chrom)
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   if(is.null(cum.pos)){
     cum.pos <- pos
@@ -676,8 +685,11 @@ manhattan2 <- function(input, sig.level = 0.05, method.thres = "BH", cex = 1, pl
 #' Draw the effects of epistasis (3d plot and 2d plot)
 #'
 #'
-#' @param input Data frame of GWAS results where the first column is the marker names,
-#' the second and third column is the chromosome amd map position, and the forth column is -log10(p) for each marker.
+#' @param input List of results of RGWAS.epistasis / RGWAS.twostep.epi. If the output of `RGWAS.epistasis` is `res`, 
+#' `input` corresponds to `res$scores`. If the output of `RGWAS.twostep.epi.` is `res`, 
+#' `input` corresponds to `res$epistasis$scores`. See: Value of \link[RAINBOWR]{RGWAS.epistasis}
+#' @param map Data frame with the marker names in the first column. The second and third columns contain the chromosome and map position.
+#' This is map information for SNPs which are tested epistatic effects.
 #' @param cum.pos Cumulative position (over chromosomes) of each marker
 #' @param plot.epi.3d If TRUE, draw 3d plot
 #' @param plot.epi.2d If TRUE, draw 2d plot
@@ -691,13 +703,13 @@ manhattan2 <- function(input, sig.level = 0.05, method.thres = "BH", cex = 1, pl
 #'
 #'
 
-manhattan3 <- function(input, cum.pos, plot.epi.3d = TRUE,
+manhattan3 <- function(input, map, cum.pos, plot.epi.3d = TRUE,
                        plot.epi.2d = TRUE, main.epi.3d = NULL,
                        main.epi.2d = NULL, saveName = NULL){
   x <- input[[2]]
   y <- input[[3]]
   z <- input[[4]]
-  col.id <- rainbow(7)
+  col.id <- rainbow(n = 7, alpha = 1)
   quan <- seq(0, max(z, na.rm = TRUE), length = 8)
   col.num <- rep(NA, length(z))
   for(j in 1:length(z)){
@@ -708,63 +720,111 @@ manhattan3 <- function(input, cum.pos, plot.epi.3d = TRUE,
     }
   }
   
-  if(plot.epi.3d){
-    rgl::rgl.open()
-    rgl::par3d(cex = 0.6)
-    rgl::plot3d(x, y, z, col = col.id[col.num], type = "h", lwd = 3,
-                xlim = c(0, max(cum.pos)), ylim = c(0, max(cum.pos)),
-                xlab = "Position (bp)", ylab = "Position (bp)", zlab = "-log10(p)")
-    rgl::legend3d("topright", legend = paste(round(rev(quan)[-1], 1), "~", round(rev(quan[-1]), 1)),
-                  pch = 16, col = rev(rainbow(7)), cex = 0.6, inset = c(0.02))
+  if (plot.epi.3d) {
+    xPlotly <- rep(x, each = 3)
+    xPlotly[(1:length(xPlotly)) %% 3 == 0] <- NA
+    yPlotly <- rep(y, each = 3)
+    yPlotly[(1:length(yPlotly)) %% 3 == 0] <- NA
+    zPlotly <- rep(z, each = 3)
+    zPlotly[(1:length(zPlotly)) %% 3 == 0] <- NA
+    zPlotly[(1:length(zPlotly)) %% 2 == 0] <- 0
+    colPlotly <- factor(rep(col.num, each = 3),
+                        levels = 1:7,
+                        labels = rev(paste(round(rev(quan)[-1], 1), "~", round(rev(quan[-1]), 1))))
     
-    rgl::title3d(main = main.epi.3d)
+    mrkNamesPlotlyX0 <- rep(map[, 1], nrow(map))
+    mrkNamesPlotlyX <- rep(mrkNamesPlotlyX0, each = 3)
+    mrkNamesPlotlyX[(1:length(mrkNamesPlotlyX)) %% 3 == 0] <- NA
+    
+    mrkNamesPlotlyY0 <- rep(map[, 1], each = nrow(map))
+    mrkNamesPlotlyY <- rep(mrkNamesPlotlyY0, each = 3)
+    mrkNamesPlotlyY[(1:length(mrkNamesPlotlyY)) %% 3 == 0] <- NA
+    
+    chrPlotlyX0 <- rep(map[, 2], nrow(map))
+    chrPlotlyX <- rep(chrPlotlyX0, each = 3)
+    chrPlotlyX[(1:length(chrPlotlyX)) %% 3 == 0] <- NA
+    
+    chrPlotlyY0 <- rep(map[, 2], each = nrow(map))
+    chrPlotlyY <- rep(chrPlotlyY0, each = 3)
+    chrPlotlyY[(1:length(chrPlotlyY)) %% 3 == 0] <- NA
+    
+    
+    posPlotlyX0 <- rep(map[, 3], nrow(map))
+    posPlotlyX <- rep(posPlotlyX0, each = 3)
+    posPlotlyX[(1:length(posPlotlyX)) %% 3 == 0] <- NA
+    
+    posPlotlyY0 <- rep(map[, 3], each = nrow(map))
+    posPlotlyY <- rep(posPlotlyY0, each = 3)
+    posPlotlyY[(1:length(posPlotlyY)) %% 3 == 0] <- NA
+    
+    
+    
+    
+    dataPlotly <- data.frame(minuslog10p = zPlotly,
+                             markerNameX = mrkNamesPlotlyX,
+                             chrX = chrPlotlyX,
+                             posX = posPlotlyX,
+                             cumsumPosX = xPlotly,
+                             markerNameY = mrkNamesPlotlyY,
+                             chrY = chrPlotlyY,
+                             posY = posPlotlyY,
+                             cumsumPosY = yPlotly,
+                             col = colPlotly)
+    dataPlotly$minuslog10p <- round(dataPlotly$minuslog10p, 2)
+    
+    if (requireNamespace("plotly", quietly = TRUE)) {
+    plt <- plotly::plot_ly(data = dataPlotly,
+                           color = ~ col, 
+                           colors = col.id,
+                           hoverinfo = "text",
+                           text = paste0(apply(dataPlotly[, - ncol(dataPlotly)], 1, function(l) {
+                             paste(names(l), ":", l, collapse = "\n")
+                           }))) %>%
+      plotly::add_paths(data = dataPlotly,
+                        x = ~ cumsumPosX, 
+                        y = ~ cumsumPosY, 
+                        z = ~ minuslog10p) %>%
+      plotly::layout(title = list(text = main.epi.3d))
+    
+    if (!is.null(saveName)) {
+      saveFileEpistasis3d <- here::here(paste0(saveName, "_epistasis_3d_plotly"))
+      saveFileEpistasis3dHtml <- paste0(saveFileEpistasis3d, ".html")
+      saveFileEpistasis3dFiles <- paste0(saveFileEpistasis3d, "_files")
+      htmlwidgets::saveWidget(widget = plotly::partial_bundle(plt), 
+                              file = saveFileEpistasis3dHtml)
+      
+      unlink(x = saveFileEpistasis3dFiles,
+             recursive = TRUE)
+    } else {
+      print(plt)
+    }
+    } else {
+      warning("R package `plotly` should be correctly installed when you use the option `plot.epi.3d = TRUE` !")
+    }
   }
   
-  pl.size <- 10 * z / max(z)
-  if(!is.null(saveName)){
-    if(plot.epi.3d){
-      rgl.snapshot(paste(saveName, "_epistasis_3d_snapshot.png", sep = ""))
-      if(length(grep("/", saveName)) != 0){
-        spr <- strsplit(saveName, "/")[[1]]
-        dir <- paste(spr[-length(spr)], collapse = "/")
-        file_name <- spr[length(spr)]
-      }else{
-        dir <- ""
-        file_name <- saveName
-      }
-      writeWebGL(dir = dir, filename = file.path(dir, paste(file_name, "_epistasis_3d_webplot.html")),
-                 width = 1000, height = 1000)
-      rgl.close()
+  if (plot.epi.2d) {
+    pl.size <- 10 * z / max(z)
+    
+    if(!is.null(saveName)){
+      png(paste0(saveName, "_epistasis_2d_plot.png"), width = 600, height = 500)
     }
     
-    if(plot.epi.2d){
-      png(paste(saveName, "_epistasis_2d_plot.png", ""), width = 600, height = 500)
-      oldpar <- par(no.readonly = TRUE)
-      on.exit(par(oldpar))
-      par(mar = c(3, 3, 3, 6), xpd = T)
-      plot(x, y, cex = pl.size, xlim = c(0, max(cum.pos)), ylim = c(0, max(cum.pos)), col = col.id[col.num], pch = 1)
-      segments(0, 0, max(cum.pos), max(cum.pos), lty = "dotted")
-      legend(oldpar$usr[2], oldpar$usr[4],
-             legend = paste(round(rev(quan)[-1], 1), "~", round(rev(quan[-1]), 1)),
-             pch = 1, col = rev(rainbow(7)), cex = 1)
-      title(main = main.epi.2d)
+    oldpar <- par(no.readonly = TRUE)
+    on.exit(par(oldpar))
+    par(mar = c(3, 3, 3, 6), xpd = T)
+    plot(x, y, cex = pl.size, xlim = c(0, max(cum.pos)), ylim = c(0, max(cum.pos)), col = col.id[col.num], pch = 1)
+    segments(0, 0, max(cum.pos), max(cum.pos), lty = "dotted")
+    legend(oldpar$usr[2], oldpar$usr[4],
+           legend = paste(round(rev(quan)[-1], 1), "~", round(rev(quan[-1]), 1)),
+           pch = 1, col = rev(col.id), cex = 1)
+    title(main = main.epi.2d)
+    
+    if(!is.null(saveName)){
       dev.off()
-    }
-  }else{
-    if(plot.epi.2d){
-      oldpar <- par(no.readonly = TRUE)
-      on.exit(par(oldpar))
-      par(mar = c(3, 3, 3, 6), xpd = T)
-      plot(x, y, cex = pl.size, xlim = c(0, max(cum.pos)), ylim = c(0, max(cum.pos)), col = col.id[col.num], pch = 1)
-      segments(0, 0, max(cum.pos), max(cum.pos), lty = "dotted")
-      legend(oldpar$usr[2], oldpar$usr[4],
-             legend = paste(round(rev(quan)[-1], 1), "~", round(rev(quan[-1]), 1)),
-             pch = 1, col = rev(rainbow(7)), cex = 1)
-      title(main = main.epi.2d)
     }
   }
 }
-
 
 
 #' Draw qq plot
@@ -807,6 +867,7 @@ qq <- function(scores) {
 #' @param P3D When P3D = TRUE, variance components are estimated by REML only once, without any markers in the model.
 #' When P3D = FALSE, variance components are estimated by REML for each marker separately.
 #' @param optimizer The function used in the optimization process. We offer "optim", "optimx", and "nlminb" functions.
+#' @param n.core Setting n.core > 1 will enable parallel execution on a machine with multiple cores.
 #' @param eigen.G A list with
 #' \describe{
 #' \item{$values}{Eigen values}
@@ -836,7 +897,7 @@ qq <- function(scores) {
 #'
 #'
 score.calc <- function(M.now, ZETA.now, y, X.now, Hinv, P3D = TRUE, optimizer = "nlminb",
-                       eigen.G = NULL,  min.MAF = 0.02, count = TRUE) {
+                       eigen.G = NULL, n.core = NA, min.MAF = 0.02, count = TRUE) {
   n.mark <- ncol(M.now)
   scores <- array(NA, n.mark)
   
@@ -882,10 +943,12 @@ score.calc <- function(M.now, ZETA.now, y, X.now, Hinv, P3D = TRUE, optimizer = 
       if (!P3D) {
         Xi <- make.full(Xi)
         if(length(ZETA.now) > 1){
-          EMM.res <- EM3.cpp(y = yi, X0 = Xi, ZETA = ZETA.now, eigen.G = eigen.G, optimizer = optimizer,
+          EMM.res <- EM3.cpp(y = yi, X0 = Xi, ZETA = ZETA.now, eigen.G = eigen.G,
+                             n.core = n.core, optimizer = optimizer,
                              tol = NULL, n.thres = 450, REML = TRUE, pred = FALSE)
         }else{
-          EMM.res <- EMM.cpp(y = yi, X = Xi, ZETA = ZETA.now, eigen.G = eigen.G, optimizer = optimizer,
+          EMM.res <- EMM.cpp(y = yi, X = Xi, ZETA = ZETA.now, eigen.G = eigen.G,
+                             n.core = n.core, optimizer = optimizer,
                              tol = NULL, n.thres = 450, REML = TRUE)
         }
         H2inv <- EMM.res$Hinv
@@ -983,10 +1046,12 @@ score.calc.MC <- function(M.now, ZETA.now, y, X.now, Hinv, n.core = 2, P3D = TRU
       if (!P3D) {
         Xi <- make.full(Xi)
         if(length(ZETA.now) > 1){
-          EMM.res <- EM3.cpp(y = yi, X0 = Xi, ZETA = ZETA.now, eigen.G = eigen.G, optimizer = optimizer,
+          EMM.res <- EM3.cpp(y = yi, X0 = Xi, ZETA = ZETA.now, eigen.G = eigen.G, 
+                             n.core = n.core, optimizer = optimizer,
                              tol = NULL, n.thres = 450, REML = TRUE, pred = FALSE)
         }else{
-          EMM.res <- EMM.cpp(y = yi, X = Xi, ZETA = ZETA.now, eigen.G = eigen.G, optimizer = optimizer,
+          EMM.res <- EMM.cpp(y = yi, X = Xi, ZETA = ZETA.now, eigen.G = eigen.G, 
+                             n.core = n.core, optimizer = optimizer,
                              tol = NULL, n.thres = 450, REML = TRUE)
         }
         H2inv <- EMM.res$Hinv
@@ -1072,6 +1137,7 @@ make.full <- function(X) {
 #' You can use "spectralG.cpp" function in RAINBOWR.
 #' If this argument is NULL, the eigen decomposition will be performed in this function.
 #' We recommend you assign the result of the eigen decomposition beforehand for time saving.
+#' @param n.core Setting n.core > 1 will enable parallel execution on a machine with multiple cores.
 #' @param eigen.G A list with
 #' \describe{
 #' \item{$values}{Eigen values}
@@ -1129,8 +1195,9 @@ make.full <- function(X) {
 #'
 #'
 #'
-score.calc.LR <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, eigen.G = NULL, optimizer = "nlminb",
-                          map, kernel.method = "linear", kernel.h = "tuned", haplotype = TRUE, num.hap = NULL,
+score.calc.LR <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, eigen.G = NULL, 
+                          n.core = NA, optimizer = "nlminb", map, kernel.method = "linear",
+                          kernel.h = "tuned", haplotype = TRUE, num.hap = NULL,
                           test.effect = "additive", window.size.half = 5, window.slide = 1,
                           chi0.mixture = 0.5, weighting.center = TRUE, weighting.other = NULL,
                           gene.set = NULL, min.MAF = 0.02, count = TRUE){
@@ -1138,7 +1205,7 @@ score.calc.LR <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, eige
   
   chr <- map[, 2]
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   n.scores.each <- (chr.tab + (window.slide - 1)) %/% window.slide
   cum.n.scores <- cumsum(n.scores.each)
@@ -1278,7 +1345,7 @@ score.calc.LR <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, eige
             }
           }
         }else{
-          kmed.res <- cluster::pam(Mis.0, k = num.hap)
+          kmed.res <- cluster::pam(Mis.0, k = num.hap, pamonce = 5)
           Mis <- kmed.res$medoids
           bango <- kmed.res$clustering
           if(any(MAF.cut.D)){
@@ -1364,18 +1431,20 @@ score.calc.LR <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, eige
           Ws0 <- list(W = Z.part)
           Zs0 <- list(Z = diag(nrow(Mis.0)))
           EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, optimizer = optimizer,
-                                         Zs0 = Zs0, Ws0 = Ws0, Gammas0 = Gammas0,
+                                         Zs0 = Zs0, Ws0 = Ws0, Gammas0 = Gammas0, n.core = n.core, 
                                          gammas.diag = FALSE, X.fix = TRUE, tol = NULL,
                                          eigen.SGS = eigen.SGS, eigen.G = eigen.G,
                                          REML = TRUE, pred = FALSE), silent = TRUE)
           if("try-error" %in% class(EMM.res2)){
             ZETA.now2 <- c(ZETA.now, list(part = list(Z = Z.part, K = K.SNP)))
-            EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2, tol = NULL, optimizer = optimizer,
+            EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2, tol = NULL, 
+                                    n.core = n.core, optimizer = optimizer,
                                     REML = TRUE, pred = FALSE), silent = TRUE)
           }
         }else{
           ZETA.now2 <- c(ZETA.now, list(part = list(Z = Z.part, K = K.SNP)))
-          EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2, tol = NULL, optimizer = optimizer,
+          EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2, tol = NULL, 
+                                  n.core = n.core, optimizer = optimizer,
                                   REML = TRUE, pred = FALSE), silent = TRUE)
         }
         
@@ -1455,7 +1524,8 @@ score.calc.LR <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, eige
           test.no.now <- test.no[j]
           if(length(ZETA.now) == 1){
             if(test.no.now == 1){
-              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, optimizer = optimizer,
+              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, 
+                                             n.core = n.core, optimizer = optimizer,
                                              Zs0 = Zs0.A, Ws0 = Ws0.A, Gammas0 = Gammas0.A,
                                              gammas.diag = TRUE, X.fix = TRUE, tol = NULL,
                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G,
@@ -1463,7 +1533,8 @@ score.calc.LR <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, eige
             }
             
             if(test.no.now == 2){
-              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, optimizer = optimizer,
+              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, 
+                                             n.core = n.core, optimizer = optimizer,
                                              Zs0 = Zs0.D, Ws0 = Ws0.D, Gammas0 = Gammas0.D,
                                              gammas.diag = TRUE, X.fix = TRUE, tol = NULL,
                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G,
@@ -1471,7 +1542,8 @@ score.calc.LR <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, eige
             }
             
             if(test.no.now == 3){
-              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, optimizer = optimizer,
+              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, 
+                                             n.core = n.core, optimizer = optimizer,
                                              Zs0 = Zs0.AD, Ws0 = Ws0.AD, Gammas0 = Gammas0.AD,
                                              gammas.diag = TRUE, X.fix = TRUE, tol = NULL,
                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G,
@@ -1499,33 +1571,39 @@ score.calc.LR <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, eige
               }
               
               if(test.no.now == 1){
-                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.A, tol = NULL, optimizer = optimizer,
+                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.A, tol = NULL, 
+                                        n.core = n.core, optimizer = optimizer,
                                         REML = TRUE, pred = FALSE), silent = TRUE)
               }
               
               if(test.no.now == 2){
-                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.D, tol = NULL, optimizer = optimizer,
+                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.D, tol = NULL, 
+                                        n.core = n.core, optimizer = optimizer,
                                         REML = TRUE, pred = FALSE), silent = TRUE)
               }
               
               if(test.no.now == 3){
-                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.AD, tol = NULL, optimizer = optimizer,
+                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.AD, tol = NULL,
+                                        n.core = n.core, optimizer = optimizer,
                                         REML = TRUE, pred = FALSE), silent = TRUE)
               }
             }
           }else{
             if(test.no.now == 1){
-              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.A, tol = NULL, optimizer = optimizer,
+              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.A, tol = NULL, 
+                                      n.core = n.core, optimizer = optimizer,
                                       REML = TRUE, pred = FALSE), silent = TRUE)
             }
             
             if(test.no.now == 2){
-              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.D, tol = NULL, optimizer = optimizer,
+              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.D, tol = NULL, 
+                                      n.core = n.core, optimizer = optimizer,
                                       REML = TRUE, pred = FALSE), silent = TRUE)
             }
             
             if(test.no.now == 3){
-              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.AD, tol = NULL, optimizer = optimizer,
+              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.AD, tol = NULL, 
+                                      n.core = n.core, optimizer = optimizer,
                                       REML = TRUE, pred = FALSE), silent = TRUE)
             }
           }
@@ -1667,7 +1745,7 @@ score.calc.LR.MC <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, e
   
   chr <- map[, 2]
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   n.scores.each <- (chr.tab + (window.slide - 1)) %/% window.slide
   cum.n.scores <- cumsum(n.scores.each)
@@ -1786,12 +1864,12 @@ score.calc.LR.MC <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, e
             }
           }
         }else{
-          kmed.res <- cluster::pam(Mis.0, k = num.hap)
+          kmed.res <- cluster::pam(Mis.0, k = num.hap, pamonce = 5)
           Mis <- kmed.res$medoids
           bango <- kmed.res$clustering
           if(any(MAF.cut.D)){
             if(any(test.effect %in% c("dominance", "additive+dominance"))){
-              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap)
+              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap, pamonce = 5)
               Mis.D <- kmed.res.D$medoids
               bango.D <- kmed.res.D$clustering
             }
@@ -1872,19 +1950,22 @@ score.calc.LR.MC <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, e
           Gammas0 <- list(K = K.SNP)
           Ws0 <- list(W = Z.part)
           Zs0 <- list(Z = diag(nrow(Mis.0)))
-          EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, optimizer = optimizer,
+          EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, 
+                                         n.core = n.core, optimizer = optimizer,
                                          Zs0 = Zs0, Ws0 = Ws0, Gammas0 = Gammas0,
                                          gammas.diag = FALSE, X.fix = TRUE, tol = NULL,
                                          eigen.SGS = eigen.SGS, eigen.G = eigen.G,
                                          REML = TRUE, pred = FALSE), silent = TRUE)
           if("try-error" %in% class(EMM.res2)){
             ZETA.now2 <- c(ZETA.now, list(part = list(Z = Z.part, K = K.SNP)))
-            EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2, tol = NULL, optimizer = optimizer,
+            EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2, tol = NULL, 
+                                    n.core = n.core, optimizer = optimizer,
                                     REML = TRUE, pred = FALSE), silent = TRUE)
           }
         }else{
           ZETA.now2 <- c(ZETA.now, list(part = list(Z = Z.part, K = K.SNP)))
-          EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2, tol = NULL, optimizer = optimizer,
+          EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2, tol = NULL, 
+                                  n.core = n.core, optimizer = optimizer,
                                   REML = TRUE, pred = FALSE), silent = TRUE)
         }
         
@@ -1964,7 +2045,8 @@ score.calc.LR.MC <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, e
           test.no.now <- test.no[j]
           if(length(ZETA.now) == 1){
             if(test.no.now == 1){
-              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, optimizer = optimizer,
+              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, 
+                                             n.core = n.core, optimizer = optimizer,
                                              Zs0 = Zs0.A, Ws0 = Ws0.A, Gammas0 = Gammas0.A,
                                              gammas.diag = TRUE, X.fix = TRUE, tol = NULL,
                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G,
@@ -1972,7 +2054,8 @@ score.calc.LR.MC <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, e
             }
             
             if(test.no.now == 2){
-              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, optimizer = optimizer,
+              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, 
+                                             n.core = n.core, optimizer = optimizer,
                                              Zs0 = Zs0.D, Ws0 = Ws0.D, Gammas0 = Gammas0.D,
                                              gammas.diag = TRUE, X.fix = TRUE, tol = NULL,
                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G,
@@ -1980,7 +2063,8 @@ score.calc.LR.MC <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, e
             }
             
             if(test.no.now == 3){
-              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, optimizer = optimizer,
+              EMM.res2 <- try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, 
+                                             n.core = n.core, optimizer = optimizer,
                                              Zs0 = Zs0.AD, Ws0 = Ws0.AD, Gammas0 = Gammas0.AD,
                                              gammas.diag = TRUE, X.fix = TRUE, tol = NULL,
                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G,
@@ -2008,33 +2092,39 @@ score.calc.LR.MC <- function(M.now, y, X.now, ZETA.now, LL0, eigen.SGS = NULL, e
               }
               
               if(test.no.now == 1){
-                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.A, tol = NULL, optimizer = optimizer,
+                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.A, tol = NULL, 
+                                        n.core = n.core, optimizer = optimizer,
                                         REML = TRUE, pred = FALSE), silent = TRUE)
               }
               
               if(test.no.now == 2){
-                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.D, tol = NULL, optimizer = optimizer,
+                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.D, tol = NULL, 
+                                        n.core = n.core, optimizer = optimizer,
                                         REML = TRUE, pred = FALSE), silent = TRUE)
               }
               
               if(test.no.now == 3){
-                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.AD, tol = NULL, optimizer = optimizer,
+                EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.AD, tol = NULL, 
+                                        n.core = n.core, optimizer = optimizer,
                                         REML = TRUE, pred = FALSE), silent = TRUE)
               }
             }
           }else{
             if(test.no.now == 1){
-              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.A, tol = NULL, optimizer = optimizer,
+              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.A, tol = NULL, 
+                                      n.core = n.core, optimizer = optimizer,
                                       REML = TRUE, pred = FALSE), silent = TRUE)
             }
             
             if(test.no.now == 2){
-              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.D, tol = NULL, optimizer = optimizer,
+              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.D, tol = NULL,
+                                      n.core = n.core, optimizer = optimizer,
                                       REML = TRUE, pred = FALSE), silent = TRUE)
             }
             
             if(test.no.now == 3){
-              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.AD, tol = NULL, optimizer = optimizer,
+              EMM.res2 <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.AD, tol = NULL, 
+                                      n.core = n.core, optimizer = optimizer,
                                       REML = TRUE, pred = FALSE), silent = TRUE)
             }
           }
@@ -2173,7 +2263,7 @@ score.calc.score <- function(M.now, y, X.now, ZETA.now, LL0, Gu, Ge, P0,
                              gene.set = NULL, min.MAF = 0.02, count = TRUE){
   chr <- map[, 2]
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   n.scores.each <- (chr.tab + (window.slide - 1)) %/% window.slide
   cum.n.scores <- cumsum(n.scores.each)
@@ -2312,12 +2402,12 @@ score.calc.score <- function(M.now, y, X.now, ZETA.now, LL0, Gu, Ge, P0,
             }
           }
         }else{
-          kmed.res <- cluster::pam(Mis.0, k = num.hap)
+          kmed.res <- cluster::pam(Mis.0, k = num.hap, pamonce = 5)
           Mis <- kmed.res$medoids
           bango <- kmed.res$clustering
           if(any(MAF.cut.D)){
             if(any(test.effect %in% c("dominance", "additive+dominance"))){
-              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap)
+              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap, pamonce = 5)
               Mis.D <- kmed.res.D$medoids
               bango.D <- kmed.res.D$clustering
             }
@@ -2572,7 +2662,7 @@ score.calc.score.MC <- function(M.now, y, X.now, ZETA.now, LL0, Gu, Ge, P0, n.co
                                 gene.set = NULL, min.MAF = 0.02, count = TRUE){
   chr <- map[, 2]
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   n.scores.each <- (chr.tab + (window.slide - 1)) %/% window.slide
   cum.n.scores <- cumsum(n.scores.each)
@@ -2691,12 +2781,12 @@ score.calc.score.MC <- function(M.now, y, X.now, ZETA.now, LL0, Gu, Ge, P0, n.co
             }
           }
         }else{
-          kmed.res <- cluster::pam(Mis.0, k = num.hap)
+          kmed.res <- cluster::pam(Mis.0, k = num.hap, pamonce = 5)
           Mis <- kmed.res$medoids
           bango <- kmed.res$clustering
           if(any(MAF.cut.D)){
             if(any(test.effect %in% c("dominance", "additive+dominance"))){
-              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap)
+              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap, pamonce = 5)
               Mis.D <- kmed.res.D$medoids
               bango.D <- kmed.res.D$clustering
             }
@@ -2916,6 +3006,7 @@ score.calc.score.MC <- function(M.now, y, X.now, ZETA.now, LL0, Gu, Ge, P0, n.co
 #' The result of the eigen decompsition of \eqn{G = ZKZ'}. You can use "spectralG.cpp" function in RAINBOWR.
 #' If this argument is NULL, the eigen decomposition will be performed in this function.
 #' We recommend you assign the result of the eigen decomposition beforehand for time saving.
+#' @param n.core Setting n.core > 1 will enable parallel execution on a machine with multiple cores.
 #' @param map Data frame of map information where the first column is the marker names,
 #' the second and third column is the chromosome amd map position, and the forth column is -log10(p) for each marker.
 #' @param haplotype If the number of lines of your data is large (maybe > 100), you should set haplotype = TRUE.
@@ -2956,13 +3047,14 @@ score.calc.score.MC <- function(M.now, y, X.now, ZETA.now, LL0, Gu, Ge, P0, n.co
 #'
 #'
 #'
-score.calc.epistasis.LR <- function(M.now, y, X.now, ZETA.now, eigen.SGS = NULL, eigen.G = NULL, optimizer = "nlminb",
-                                    map, haplotype = TRUE, num.hap = NULL, window.size.half = 5, window.slide = 1,
+score.calc.epistasis.LR <- function(M.now, y, X.now, ZETA.now, eigen.SGS = NULL, eigen.G = NULL, 
+                                    n.core = NA, optimizer = "nlminb", map, haplotype = TRUE,
+                                    num.hap = NULL, window.size.half = 5, window.slide = 1,
                                     chi0.mixture = 0.5, gene.set = NULL, dominance.eff = TRUE,
                                     min.MAF = 0.02, count = TRUE){
   chr <- map[, 2]
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   n.scores.each <- (chr.tab + (window.slide - 1)) %/% window.slide
   cum.n.scores <- cumsum(n.scores.each)
@@ -3088,12 +3180,12 @@ score.calc.epistasis.LR <- function(M.now, y, X.now, ZETA.now, eigen.SGS = NULL,
             }
           }
         }else{
-          kmed.res <- cluster::pam(Mis.0, k = num.hap)
+          kmed.res <- cluster::pam(Mis.0, k = num.hap, pamonce = 5)
           Mis <- kmed.res$medoids
           bango <- kmed.res$clustering
           if(any(MAF.cut.D)){
             if(dominance.eff){
-              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap)
+              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap, pamonce = 5)
               Mis.D <- kmed.res.D$medoids
               bango.D <- kmed.res.D$clustering
             }
@@ -3449,23 +3541,27 @@ score.calc.epistasis.LR <- function(M.now, y, X.now, ZETA.now, eigen.SGS = NULL,
       
       if(lin.method){
         Gammas0.null <- lapply(Ws0.null, function(x) diag(ncol(x)))
-        EMM.res.null <-  try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, tol = NULL, optimizer = optimizer,
+        EMM.res.null <-  try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, tol = NULL, 
+                                            n.core = n.core, optimizer = optimizer,
                                             Zs0 = Zs0.null, Ws0 = Ws0.null, Gammas0 = Gammas0.null,
                                             gammas.diag = TRUE, X.fix = TRUE,
                                             eigen.SGS = eigen.SGS, eigen.G = eigen.G,
                                             REML = TRUE, pred = FALSE), silent = TRUE)
         
         Gammas0.alt <- lapply(Ws0.alt, function(x) diag(ncol(x)))
-        EMM.res.alt <-  try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, tol = NULL, optimizer = optimizer,
+        EMM.res.alt <-  try(EM3.linker.cpp(y0 = y, X0 = X.now, ZETA = ZETA.now, tol = NULL, 
+                                           n.core = n.core, optimizer = optimizer,
                                            Zs0 = Zs0.alt, Ws0 = Ws0.alt, Gammas0 = Gammas0.alt,
                                            gammas.diag = TRUE, X.fix = TRUE,
                                            eigen.SGS = eigen.SGS, eigen.G = eigen.G,
                                            REML = TRUE, pred = FALSE), silent = TRUE)
       }else{
-        EMM.res.null <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.null, tol = NULL, optimizer = optimizer,
+        EMM.res.null <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.null, tol = NULL,
+                                    n.core = n.core, optimizer = optimizer,
                                     REML = TRUE, pred = FALSE), silent = TRUE)
         
-        EMM.res.alt <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.alt, tol = NULL, optimizer = optimizer,
+        EMM.res.alt <- try(EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now2.alt, tol = NULL, 
+                                   n.core = n.core, optimizer = optimizer,
                                    REML = TRUE, pred = FALSE), silent = TRUE)
       }
       
@@ -3560,7 +3656,7 @@ score.calc.epistasis.score <- function(M.now, y, X.now, ZETA.now, Gu, Ge, P0,
                                        min.MAF = 0.02, count = TRUE){
   chr <- map[, 2]
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
   n.scores.each <- (chr.tab + (window.slide - 1)) %/% window.slide
   cum.n.scores <- cumsum(n.scores.each)
@@ -3684,12 +3780,12 @@ score.calc.epistasis.score <- function(M.now, y, X.now, ZETA.now, Gu, Ge, P0,
             }
           }
         }else{
-          kmed.res <- cluster::pam(Mis.0, k = num.hap)
+          kmed.res <- cluster::pam(Mis.0, k = num.hap, pamonce = 5)
           Mis <- kmed.res$medoids
           bango <- kmed.res$clustering
           if(any(MAF.cut.D)){
             if(dominance.eff){
-              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap)
+              kmed.res.D <- cluster::pam(Mis.D.0, k = num.hap, pamonce = 5)
               Mis.D <- kmed.res.D$medoids
               bango.D <- kmed.res.D$clustering
             }

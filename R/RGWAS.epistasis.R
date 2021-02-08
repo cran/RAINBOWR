@@ -68,7 +68,7 @@
 #' \item{$scores}{\describe{
 #' \item{$scores}{This is the matrix which contains -log10(p) calculated by the test about epistasis effects.}
 #' \item{$x, $y}{The information of the positions of SNPs detected by regular GWAS.
-#'  These vectors are used when drawing plots. Each output correspond to the repliction of row and column of scores.}
+#'  These vectors are used when drawing plots. Each output correspond to the replication of row and column of scores.}
 #' \item{$z}{This is a vector of $scores.  This vector is also used when drawing plots.}
 #' }
 #' }
@@ -163,10 +163,13 @@ RGWAS.epistasis <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariat
   map <- geno[, 1:3]
   marker <- as.character(map[, 1])
   chr <- map[, 2]
+  if (!is.numeric(chr)) {
+    stop("Chromosome numbers should be `numeric` (not `character`) !!")
+  }
   chr.tab <- table(chr)
-  chr.max <- max(chr)
+  chr.max <- length(chr.tab)
   chr.cum <- cumsum(chr.tab)
-  pos <- map[, 3]
+  pos <- as.double(map[, 3])
   cum.pos <- pos
   if(length(chr.tab) != 1){
     for(i in 1:(chr.max - 1)){
@@ -283,12 +286,12 @@ RGWAS.epistasis <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariat
     S <- spI - tcrossprod(X.now %*% solve(crossprod(X.now)), X.now)
 
     if(length(ZETA) > 1){
-      EMM.res0 <- EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now,
+      EMM.res0 <- EM3.cpp(y = y, X0 = X.now, ZETA = ZETA.now, n.core = n.core,
                           n.thres = 450, REML = TRUE, pred = FALSE)
 
       weights <- EMM.res0$weights
     }else{
-      EMM.res0 <- EMM.cpp(y = y, X = X.now, ZETA = ZETA.now,
+      EMM.res0 <- EMM.cpp(y = y, X = X.now, ZETA = ZETA.now, n.core = n.core,
                            n.thres = 450, REML = TRUE)
       weights <- 1
     }
@@ -338,13 +341,13 @@ RGWAS.epistasis <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariat
       warning("Sorry. n.core > 1 options have not been implemented yet. We will use n.core = 1 instead.")
       if(test.method == "LR"){
         scores.epi <- score.calc.epistasis.LR(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
-                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G, map = map,
+                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G, map = map, n.core = n.core,
                                               haplotype = haplotype, num.hap = num.hap, window.size.half = window.size.half,
                                               window.slide = window.slide, chi0.mixture = chi0.mixture,
                                               gene.set = gene.set,  dominance.eff = dominance.eff, optimizer = optimizer,
                                               min.MAF = min.MAF, count = count)
       }else{
-        scores.epi <- score.calc.epistasis.score(M.now = M.now, ZETA.now = ZETA.now, y = y,
+        scores.epi <- score.calc.epistasis.score(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
                                                  Gu = Gu, Ge = Ge, P0 = P0, map = map, haplotype = haplotype,
                                                  num.hap = num.hap, window.size.half = window.size.half,
                                                  window.slide = window.slide, chi0.mixture = chi0.mixture,
@@ -354,13 +357,13 @@ RGWAS.epistasis <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariat
     }else {
       if(test.method == "LR"){
         scores.epi <- score.calc.epistasis.LR(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
-                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G, map = map,
+                                              eigen.SGS = eigen.SGS, eigen.G = eigen.G, map = map, n.core = n.core,
                                               haplotype = haplotype, num.hap = num.hap, window.size.half = window.size.half,
                                               window.slide = window.slide, chi0.mixture = chi0.mixture,
                                               gene.set = gene.set,  dominance.eff = dominance.eff, optimizer = optimizer,
                                               min.MAF = min.MAF, count = count)
       }else{
-        scores.epi <- score.calc.epistasis.score(M.now = M.now, ZETA.now = ZETA.now, y = y,
+        scores.epi <- score.calc.epistasis.score(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
                                                  Gu = Gu, Ge = Ge, P0 = P0, map = map, haplotype = haplotype,
                                                  num.hap = num.hap, window.size.half = window.size.half,
                                                  window.slide = window.slide, chi0.mixture = chi0.mixture,
@@ -403,7 +406,7 @@ RGWAS.epistasis <- function(pheno, geno, ZETA = NULL, covariate = NULL, covariat
     if (verbose) {
       print("Now Plotting (3d plot for epistasis). Please Wait.")
     }
-    manhattan3(input = epi.res, cum.pos = cum.pos, plot.epi.3d = plot.epi.3d,
+    manhattan3(input = epi.res, map = map2, cum.pos = cum.pos, plot.epi.3d = plot.epi.3d,
                plot.epi.2d = plot.epi.2d,  main.epi.3d = main.epi.3d,
                main.epi.2d = main.epi.2d, saveName = saveName)
 
