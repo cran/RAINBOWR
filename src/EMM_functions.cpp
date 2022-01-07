@@ -1726,10 +1726,15 @@ Rcpp::NumericMatrix score_fisher_linker_diag(Rcpp::NumericMatrix p0, Rcpp::List 
 //
 // [[Rcpp::export]]
 double GWAS_F_test(Rcpp::NumericMatrix y, Rcpp::NumericMatrix x,
-                   Rcpp::NumericMatrix hinv, int v1, int v2, int p){
+                   Rcpp::NumericMatrix hinv, int v1, int v2,
+                   Rcpp::NumericMatrix p){
   const MapMat Y = Rcpp::as<MapMat>(y);
   const MapMat X = Rcpp::as<MapMat>(x);
   const MapMat Hinv = Rcpp::as<MapMat>(hinv);
+  const MapMat P = Rcpp::as<MapMat>(p);
+  const int pSize(P.rows());
+  double pMin = P(0, 0);
+  double pMax= P(pSize - 1, 0);
 
   MatrixXd W = crossprod(X, Hinv * X);
   MatrixXd Winv = inv(W);
@@ -1739,8 +1744,20 @@ double GWAS_F_test(Rcpp::NumericMatrix y, Rcpp::NumericMatrix x,
   MatrixXd S2 = crossprod(resid, Hinv * resid) / v2;
   double s2 = S2(0, 0);
 
+  double Fstat;
   MatrixXd CovBeta = s2 * Winv;
-  double Fstat = beta(p - 1, 0) * beta(p - 1, 0) / CovBeta(p - 1, p - 1);
+
+  if(pMin == pMax){
+    Fstat = beta(pMin - 1, 0) * beta(pMin - 1, 0) / CovBeta(pMin - 1, pMin - 1);
+  } else {
+    MatrixXd CovBetaPart = CovBeta.block(pMin - 1, pMin - 1, pMax - pMin + 1, pMax - pMin + 1);
+    MatrixXd CovBetaPartInv = inv(CovBetaPart);
+    MatrixXd betaPart = beta.block(pMin - 1, 0, pMax - pMin + 1, 1);
+    MatrixXd FstatMat = crossprod(betaPart, CovBetaPartInv) * betaPart / v1;
+    Fstat = FstatMat(0, 0);
+  }
+
+
   double betastat = v2 / (v2 + v1 * Fstat);
 
   return(betastat);
