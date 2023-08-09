@@ -14,11 +14,13 @@ data("Rice_Zhao_etal")
 Rice_geno_score <- Rice_Zhao_etal$genoScore
 Rice_geno_map <- Rice_Zhao_etal$genoMap
 Rice_pheno <- Rice_Zhao_etal$pheno
+Rice_haplo_block <- Rice_Zhao_etal$haploBlock
 
 ### View each dataset
 See(Rice_geno_score)
 See(Rice_geno_map)
 See(Rice_pheno)
+See(Rice_haplo_block)
 
 ## ---- include=TRUE------------------------------------------------------------
 ### Select one trait for example
@@ -53,7 +55,8 @@ str(ZETA)
 ### Perform single-SNP GWAS
 normal.res <- RGWAS.normal(pheno = pheno.GWAS, geno = geno.GWAS,
                            plot.qq = FALSE, plot.Manhattan = FALSE,
-                           ZETA = ZETA, n.PC = 4, P3D = TRUE, count = FALSE)
+                           ZETA = ZETA, n.PC = 4, P3D = TRUE, 
+                           skip.check = TRUE, count = FALSE)
 See(normal.res$D)  ### Column 4 contains -log10(p) values for markers
 
 ## ---- echo=FALSE--------------------------------------------------------------
@@ -65,7 +68,8 @@ manhattan(normal.res$D)
 ### Perform SNP-set GWAS (by regarding 11 SNPs as one SNP-set, first 300 SNPs)
 SNP_set.res <- RGWAS.multisnp(pheno = pheno.GWAS, geno = geno.GWAS[1:300, ], ZETA = ZETA,
                               plot.qq = FALSE, plot.Manhattan = FALSE, count = FALSE,
-                              n.PC = 4, test.method = "LR", kernel.method = "linear", gene.set = NULL,
+                              n.PC = 4, test.method = "LR", kernel.method = "linear",
+                              gene.set = NULL, skip.check = TRUE, 
                               test.effect = "additive", window.size.half = 5, window.slide = 11)
 
 See(SNP_set.res$D)  ### Column 4 contains -log10(p) values for markers
@@ -75,6 +79,18 @@ qq(SNP_set.res$D[, 4])
 manhattan(SNP_set.res$D)
 ### Automatically draw Q-Q plot and Manhattan if you set plot.qq = TRUE and plot.Manhattan = TRUE.
 
-## ---- include=TRUE, eval=FALSE------------------------------------------------
-#  RGWAS.menu()
+## ---- include=TRUE, message=FALSE---------------------------------------------
+### Perform haplotype-block based GWAS (by using hapltype blocks estimated by PLINK, first 400 SNPs)
+haplo_block.res <- RGWAS.multisnp(pheno = pheno.GWAS, geno = geno.GWAS[1:400, ], ZETA = ZETA,
+                              plot.qq = FALSE, plot.Manhattan = FALSE, count = FALSE,
+                              n.PC = 4, test.method = "LR", kernel.method = "linear", 
+                              gene.set = Rice_haplo_block, skip.check = TRUE, 
+                              test.effect = "additive")
+
+See(haplo_block.res$D)  ### Column 4 contains -log10(p) values for markers
+
+## ---- echo=FALSE--------------------------------------------------------------
+qq(haplo_block.res$D[, 4])
+manhattan(haplo_block.res$D)
+### Automatically draw Q-Q plot and Manhattan if you set plot.qq = TRUE and plot.Manhattan = TRUE.
 

@@ -1,4 +1,4 @@
-#' Testing multiple SNPs simultaneously for GWAS
+#' Testing multiple SNPs and their interaction with some kernel simultaneously for GWAS
 #'
 #' @description This function performs SNP-set GWAS (genome-wide association studies),
 #' which tests multiple SNPs (single nucleotide polymorphisms) simultaneously. The model of SNP-set GWAS is
@@ -36,6 +36,11 @@
 #' \item{K.A, K.D}{Different kernels which express some relationships between lines.}
 #' }
 #' For example, K.A is additive relationship matrix for the covariance between lines, and K.D is dominance relationship matrix.
+#' @param interaction.kernel A \eqn{n \times n} Gram (kernel) matrix which may indicate some interaction with SNP-sets to be tested.
+#' @param include.interaction.kernel.null Whether or not including `iteraction.kernel` itself into the null and alternative models.
+#' @param include.interaction.with.gb.null Whether or not including the interaction term between `iteraction.kernel`
+#' and the genetic background (= kinship matrix) into the null and alternative models. By setting this TRUE, you can avoid the false positives caused
+#' by epistastis between polygenes, especially you set kinship matrix as `interaction.kernel`.
 #' @param package.MM The package name to be used when solving mixed-effects model. We only offer the following three packages:
 #' "RAINBOWR", "MM4LMM" and "gaston". Default package is `gaston`.
 #' See more details at \code{\link{EM3.general}}.
@@ -48,10 +53,9 @@
 #' @param n.PC Number of principal components to include as fixed effects. Default is 0 (equals K model).
 #' @param min.MAF Specifies the minimum minor allele frequency (MAF).
 #' If a marker has a MAF less than min.MAF, it is assigned a zero score.
-#' @param test.method RGWAS supports two methods to test effects of each SNP-set.
+#' @param test.method RGWAS supports only one method to test effects of each SNP-set.
 #' \describe{
 #' \item{"LR"}{Likelihood-ratio test, relatively slow, but accurate (default).}
-#' \item{"score"}{Score test, much faster than LR, but sometimes overestimate -log10(p).}
 #' }
 #' @param n.core Setting n.core > 1 will enable parallel execution on a machine with multiple cores.
 #' This argument is not valid when `parallel.method = "furrr"`.
@@ -191,27 +195,31 @@
 #'
 #' Lippert, C. et al. (2014) Greater power and computational efficiency for kernel-based association testing of sets of genetic variants. Bioinformatics. 30(22): 3206-3214.
 #'
-#' @example R/examples/RGWAS.multisnp_example.R
+#' @example R/examples/RGWAS.multisnp.interaction_example.R
 #'
 #'
 #'
-RGWAS.multisnp <- function(pheno, geno, ZETA = NULL, package.MM = "gaston",
-                           covariate = NULL, covariate.factor = NULL,
-                           structure.matrix = NULL, n.PC = 0, min.MAF = 0.02,
-                           test.method = "LR", n.core = 1, parallel.method = "mclapply",
-                           kernel.method = "linear", kernel.h = "tuned",
-                           haplotype = TRUE, num.hap = NULL, test.effect = "additive",
-                           window.size.half = 5, window.slide = 1, chi0.mixture = 0.5,
-                           gene.set = NULL, map.gene.set = NULL,
-                           weighting.center = TRUE, weighting.other = NULL,
-                           sig.level = 0.05, method.thres = "BH", plot.qq = TRUE,
-                           plot.Manhattan = TRUE, plot.method = 1,
-                           plot.col1 = c("dark blue", "cornflowerblue"), plot.col2 = 1,
-                           plot.type = "p", plot.pch = 16, saveName = NULL,
-                           main.qq = NULL, main.man = NULL, plot.add.last = FALSE,
-                           return.EMM.res = FALSE, optimizer = "nlminb",
-                           thres = TRUE, skip.check = FALSE, verbose = TRUE,
-                           verbose2 = FALSE, count = TRUE, time = TRUE) {
+RGWAS.multisnp.interaction <- function(pheno, geno, ZETA = NULL,
+                                       interaction.kernel = NULL,
+                                       include.interaction.kernel.null = FALSE,
+                                       include.interaction.with.gb.null = FALSE,
+                                       package.MM = "gaston",
+                                       covariate = NULL, covariate.factor = NULL,
+                                       structure.matrix = NULL, n.PC = 0, min.MAF = 0.02,
+                                       test.method = "LR", n.core = 1, parallel.method = "mclapply",
+                                       kernel.method = "linear", kernel.h = "tuned",
+                                       haplotype = TRUE, num.hap = NULL, test.effect = "additive",
+                                       window.size.half = 5, window.slide = 1, chi0.mixture = 0.5,
+                                       gene.set = NULL, map.gene.set = NULL,
+                                       weighting.center = TRUE, weighting.other = NULL,
+                                       sig.level = 0.05, method.thres = "BH", plot.qq = TRUE,
+                                       plot.Manhattan = TRUE, plot.method = 1,
+                                       plot.col1 = c("dark blue", "cornflowerblue"), plot.col2 = 1,
+                                       plot.type = "p", plot.pch = 16, saveName = NULL,
+                                       main.qq = NULL, main.man = NULL, plot.add.last = FALSE,
+                                       return.EMM.res = FALSE, optimizer = "nlminb",
+                                       thres = TRUE, skip.check = FALSE, verbose = TRUE,
+                                       verbose2 = FALSE, count = TRUE, time = TRUE) {
 
   #### The start of the RGWAS function ####
   start <- Sys.time()
@@ -349,6 +357,39 @@ RGWAS.multisnp <- function(pheno, geno, ZETA = NULL, package.MM = "gaston",
 
 
 
+  ### For interacton.kernel ###
+  if (is.null(interaction.kernel)) {
+    Z.A.sp <- as(object = Z.A, Class = "sparseMatrix")
+    Z.A.t.sp <- as(object = t(Z.A), Class = "sparseMatrix")
+
+    interaction.kernel <- as.matrix(Z.A.sp %*% K.A %*% Z.A.t.sp)
+
+    if (include.interaction.kernel.null) {
+      include.interaction.kernel.null <- FALSE
+      message(paste0("`include.interaction.kernel.null` is set as `FALSE`",
+                     " because genomic relationship matrix is set as `interaction.kernel`!"))
+    }
+
+    if (!include.interaction.with.gb.null) {
+      include.interaction.with.gb.null <- TRUE
+      message(paste0("`include.interaction.with.gb.null` is set as `TRUE`",
+                     " because genomic relationship matrix is set as `interaction.kernel`!"))
+    }
+  } else {
+    stopifnot(nrow(interaction.kernel) == ncol(interaction.kernel))
+    stopifnot(nrow(interaction.kernel) == nrow(pheno.mat))
+    if (is.null(rownames(interaction.kernel))) {
+      rownames(interaction.kernel) <- colnames(interaction.kernel) <-
+        rownames(pheno.mat)
+    } else {
+      stopifnot(all(rownames(interaction.kernel) == colnames(interaction.kernel)))
+      stopifnot(all(rownames(interaction.kernel) == rownames(pheno.mat)))
+    }
+
+    interaction.kernel <- interaction.kernel[match.modi, match.modi]
+  }
+
+
   ### For covariates (again) ###
   if (n.PC > 0) {
     eigen.K.A <- eigen(K.A)
@@ -422,8 +463,29 @@ RGWAS.multisnp <- function(pheno, geno, ZETA = NULL, package.MM = "gaston",
       }
     }
 
+    interaction.kernel.now <- interaction.kernel[not.NA, not.NA]
+
+    if (include.interaction.kernel.null) {
+      ZETA.now <- c(ZETA.now,
+                    list(kernel = list(Z = design.Z(pheno.labels = rownames(X.now),
+                                                    geno.names = rownames(interaction.kernel.now)),
+                                       K = interaction.kernel.now)))
+    }
+
+    if (include.interaction.with.gb.null) {
+      Z.A.nonNA.sp <- as(object = Z.A[not.NA, ], Class = "sparseMatrix")
+      Z.A.nonNA.t.sp <- as(object = t(Z.A[not.NA, ]), Class = "sparseMatrix")
+      ZKZt.now <- as.matrix(Z.A.nonNA.sp %*% K.A %*% Z.A.nonNA.t.sp)
+      ZETA.now <- c(ZETA.now,
+                    list(kernelxGb = list(Z = design.Z(pheno.labels = rownames(X.now),
+                                                       geno.names = rownames(interaction.kernel.now)),
+                                          K = interaction.kernel.now * ZKZt.now)))
+    }
+
     p <- ncol(X.now)
     m <- ncol(Z.A)
+
+
 
     #### Calculate LL for the null hypothesis at first ####
     spI <- diag(n)
@@ -458,20 +520,21 @@ RGWAS.multisnp <- function(pheno, geno, ZETA = NULL, package.MM = "gaston",
       eigen.G <- spectral.res[[1]]
       eigen.SGS <- spectral.res[[2]]
     } else {
-      if (test.method == "score") {
-        LL0 <- EMM.res0$LL
-        Vu <- EMM.res0$Vu
-        Ve <- EMM.res0$Ve
-
-        Gu <- tcrossprod(ZKZt)
-        Ge <- diag(n)
-        V0 <- Vu * Gu + Ve * Ge
-
-
-        P0 <- MASS::ginv(S %*% V0 %*% S)
-      } else {
-        stop("We only support 'LR' (likelihood-ratio test) and 'score' (score test)!")
-      }
+      stop("We only support 'LR' (likelihood-ratio test) method for `test.method`!")
+      # if (test.method == "score") {
+      #   LL0 <- EMM.res0$LL
+      #   Vu <- EMM.res0$Vu
+      #   Ve <- EMM.res0$Ve
+      #
+      #   Gu <- tcrossprod(ZKZt)
+      #   Ge <- diag(n)
+      #   V0 <- Vu * Gu + Ve * Ge
+      #
+      #
+      #   P0 <- MASS::ginv(S %*% V0 %*% S)
+      # } else {
+      #   stop("We only support 'LR' (likelihood-ratio test) and 'score' (score test)!")
+      # }
     }
 
 
@@ -481,45 +544,49 @@ RGWAS.multisnp <- function(pheno, geno, ZETA = NULL, package.MM = "gaston",
     #### Calculating the value of -log10(p) for each SNPs ####
     if ((n.core > 1) & requireNamespace("parallel", quietly = TRUE)) {
       if (test.method == "LR") {
-        scores <- score.calc.LR.MC(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
-                                   package.MM = package.MM, LL0 = LL0, eigen.SGS = eigen.SGS,
-                                   eigen.G = eigen.G, n.core = n.core,
-                                   parallel.method = parallel.method, map = map,
-                                   kernel.method = kernel.method, kernel.h = kernel.h,
-                                   haplotype = haplotype, num.hap = num.hap,
-                                   test.effect = test.effect, window.size.half = window.size.half,
-                                   window.slide = window.slide, chi0.mixture = chi0.mixture,
-                                   optimizer = optimizer, weighting.center = weighting.center,
-                                   weighting.other = weighting.other, gene.set = gene.set,
-                                   min.MAF = min.MAF, count = count)
+        scores <- score.calc.LR.int.MC(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
+                                       interaction.kernel = interaction.kernel.now,
+                                       package.MM = package.MM, LL0 = LL0, eigen.SGS = eigen.SGS,
+                                       eigen.G = eigen.G, n.core = n.core,
+                                       parallel.method = parallel.method, map = map,
+                                       kernel.method = kernel.method, kernel.h = kernel.h,
+                                       haplotype = haplotype, num.hap = num.hap,
+                                       test.effect = test.effect, window.size.half = window.size.half,
+                                       window.slide = window.slide, chi0.mixture = chi0.mixture,
+                                       optimizer = optimizer, weighting.center = weighting.center,
+                                       weighting.other = weighting.other, gene.set = gene.set,
+                                       min.MAF = min.MAF, count = count)
       } else {
-        scores <- score.calc.score.MC(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
-                                      LL0 = LL0, Gu = Gu, Ge = Ge, P0 = P0, n.core = n.core,
-                                      parallel.method = parallel.method, map = map,
-                                      kernel.method = kernel.method, kernel.h = kernel.h, haplotype = haplotype,
-                                      num.hap = num.hap, test.effect = test.effect, window.size.half = window.size.half,
-                                      window.slide = window.slide, chi0.mixture = chi0.mixture,
-                                      weighting.center = weighting.center, weighting.other = weighting.other,
-                                      gene.set = gene.set, min.MAF = min.MAF, count = count)
+        stop("We only support 'LR' (likelihood-ratio test) method for `test.method`!")
+        # scores <- score.calc.score.MC(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
+        #                               LL0 = LL0, Gu = Gu, Ge = Ge, P0 = P0, n.core = n.core,
+        #                               parallel.method = parallel.method, map = map,
+        #                               kernel.method = kernel.method, kernel.h = kernel.h, haplotype = haplotype,
+        #                               num.hap = num.hap, test.effect = test.effect, window.size.half = window.size.half,
+        #                               window.slide = window.slide, chi0.mixture = chi0.mixture,
+        #                               weighting.center = weighting.center, weighting.other = weighting.other,
+        #                               gene.set = gene.set, min.MAF = min.MAF, count = count)
       }
     } else {
       if (test.method == "LR") {
-        scores <- score.calc.LR(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
-                                package.MM = package.MM, LL0 = LL0, eigen.SGS = eigen.SGS,
-                                eigen.G = eigen.G, n.core = n.core, map = map, optimizer = optimizer,
-                                kernel.method = kernel.method, kernel.h = kernel.h, haplotype = haplotype,
-                                num.hap = num.hap, test.effect = test.effect, window.size.half = window.size.half,
-                                window.slide = window.slide, chi0.mixture = chi0.mixture,
-                                weighting.center = weighting.center, weighting.other = weighting.other,
-                                gene.set = gene.set, min.MAF = min.MAF, count = count)
+        scores <- score.calc.LR.int(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
+                                    interaction.kernel = interaction.kernel.now,
+                                    package.MM = package.MM, LL0 = LL0, eigen.SGS = eigen.SGS,
+                                    eigen.G = eigen.G, n.core = n.core, map = map, optimizer = optimizer,
+                                    kernel.method = kernel.method, kernel.h = kernel.h, haplotype = haplotype,
+                                    num.hap = num.hap, test.effect = test.effect, window.size.half = window.size.half,
+                                    window.slide = window.slide, chi0.mixture = chi0.mixture,
+                                    weighting.center = weighting.center, weighting.other = weighting.other,
+                                    gene.set = gene.set, min.MAF = min.MAF, count = count)
       } else {
-        scores <- score.calc.score(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
-                                   LL0 = LL0, Gu = Gu, Ge = Ge, P0 = P0, map = map,
-                                   kernel.method = kernel.method, kernel.h = kernel.h, haplotype = haplotype,
-                                   num.hap = num.hap, test.effect = test.effect, window.size.half = window.size.half,
-                                   window.slide = window.slide, chi0.mixture = chi0.mixture,
-                                   weighting.center = weighting.center, weighting.other = weighting.other,
-                                   gene.set = gene.set, min.MAF = min.MAF, count = count)
+        stop("We only support 'LR' (likelihood-ratio test) method for `test.method`!")
+        # scores <- score.calc.score(M.now = M.now, y = y, X.now = X.now, ZETA.now = ZETA.now,
+        #                            LL0 = LL0, Gu = Gu, Ge = Ge, P0 = P0, map = map,
+        #                            kernel.method = kernel.method, kernel.h = kernel.h, haplotype = haplotype,
+        #                            num.hap = num.hap, test.effect = test.effect, window.size.half = window.size.half,
+        #                            window.slide = window.slide, chi0.mixture = chi0.mixture,
+        #                            weighting.center = weighting.center, weighting.other = weighting.other,
+        #                            gene.set = gene.set, min.MAF = min.MAF, count = count)
       }
     }
 

@@ -177,3 +177,37 @@ Then, we fixed this by using the canonical URL of the CRAN package "https://cran
 # Jan 06, 2022, RAINBOWR version 0.1.29
 ## Major changes
 - We modified the example files corresponding to `RGWAS.normal`, `RGWAS.normal.interaction`, `RGWAS.multisnp`, `RGWAS.epstasis`, `RGWAS.twostep`, and `RGWAS.twostep.epi` functions because there were some modifications with the function arguments.
+
+
+
+
+# Feb 01, 2022, RAINBOWR version 0.1.30
+## Major changes (new functions, etc...)
+- We implemented new functions for testing the interaction between each SNP-set (haplotype block) and the genetic background (or epistasis with polygenes). The functions to compute p-values for those effects are `score.calc.LR.int` and `score.calc.LR.int.MC`, and the function to perform haplotype-block based GWAS including such interaction effects is `RGWAS.multisnp.interaction`. We also added the function to `NAMESPACE` file.
+
+- We implemented a new function `adjustGRM`, which adjusts genomic relationship matrices when there is population structure. The function utilizes the true/estimated sub-population information (population membership) to estimated each variance component corresponding to each sub-population. We added the function to `NAMESPACE` file.
+
+- We implemented a new function `convertBlockList`, which converts a list of haplotype blocks estimaed by PLINK to the format which can be inputted as a `gene.set` argument in `RGWAS.multisnp`, `RGWAS.multisnp.interaction`, and `RGWAS.epistasis` functions. We added the function to `NAMESPACE` file. We also added the `data.table` package to the Suggests list in the DESCRIPTION file.
+
+
+- We removed the `RGWAS.normal` function from the imported functions in `NAMESPACE` file because the function did not catch up with the latest version of the `RAINBOWR` package.
+
+- We added a new argument `map.gene.set` to `RGWAS.multisnp`, `RGWAS.multisnp.interaction`, `RGWAS.epstasis`, `RGWAS.twostep`, and `RGWAS.twostep.epi` functions. If this argument is NULL, the map will be constructed by `genesetmap` function after the SNP-set GWAS. It will take some time, so you can reduce the computational time by assigning this argument beforehand.
+
+- We also updated the `README.md` and `RAINBOWR.md` for vignettes.
+
+
+
+
+# Jun 25, 2022, RAINBOWR version 0.1.31
+## Major changes (new functions, etc...)
+- We added `subpop` argument to `calcGRM` function. By utilizing `subpop` argument, you can consider the difference of allele frequencies between sub-populations when computing the genomic relationship matrix. This argument is only valid when NOIA methods are selected.
+
+- We added how to compute the marker effects from the GBLUP results in the example of `EMM.cpp` function.
+
+
+
+
+# Jul 25, 2023, RAINBOWR version 0.1.32
+## Major changes (new functions, etc...)
+- We modified the error regarding `See` function when showing  `array` objects.

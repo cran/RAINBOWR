@@ -32,6 +32,7 @@ RGWAS.twostep.epi(
   window.slide = 1,
   chi0.mixture = 0.5,
   gene.set = NULL,
+  map.gene.set = NULL,
   sig.level = 0.05,
   method.thres = "BH",
   plot.qq.1 = TRUE,
@@ -72,7 +73,7 @@ ZETA = list(A = list(Z = Z.A, K = K.A), D = list(Z = Z.D, K = K.D))
 }
 For example, K.A is additive relationship matrix for the covariance between lines, and K.D is dominance relationship matrix.}
 
-\item{package.MM}{The package name to be used when solving mixed-effects model. We only offer the following three packages: 
+\item{package.MM}{The package name to be used when solving mixed-effects model. We only offer the following three packages:
 "RAINBOWR", "MM4LMM" and "gaston". Default package is `gaston`.
 See more details at \code{\link{EM3.general}}.}
 
@@ -90,28 +91,28 @@ You should not use this argument with n.PC > 0.}
 \item{min.MAF}{Specifies the minimum minor allele frequency (MAF).
 If a marker has a MAF less than min.MAF, it is assigned a zero score.}
 
-\item{n.core}{Setting n.core > 1 will enable parallel execution on a machine with multiple cores. 
+\item{n.core}{Setting n.core > 1 will enable parallel execution on a machine with multiple cores.
 This argument is not valid when `parallel.method = "furrr"`.}
 
-\item{parallel.method}{Method for parallel computation. We offer three methods, "mclapply", "furrr", and "foreach". 
+\item{parallel.method}{Method for parallel computation. We offer three methods, "mclapply", "furrr", and "foreach".
 
-When `parallel.method = "mclapply"`, we utilize \code{\link[pbmcapply]{pbmclapply}} function in the `pbmcapply` package 
-with `count = TRUE` and \code{\link[parallel]{mclapply}} function in the `parallel` package with `count = FALSE`. 
+When `parallel.method = "mclapply"`, we utilize \code{\link[pbmcapply]{pbmclapply}} function in the `pbmcapply` package
+with `count = TRUE` and \code{\link[parallel]{mclapply}} function in the `parallel` package with `count = FALSE`.
 
-When `parallel.method = "furrr"`, we utilize \code{\link[furrr]{future_map}} function in the `furrr` package. 
-With `count = TRUE`, we also utilize \code{\link[progressr]{progressor}} function in the `progressr` package to show the progress bar, 
-so please install the `progressr` package from github (\url{https://github.com/HenrikBengtsson/progressr}). 
-For `parallel.method = "furrr"`, you can perform multi-thread parallelization by 
+When `parallel.method = "furrr"`, we utilize \code{\link[furrr]{future_map}} function in the `furrr` package.
+With `count = TRUE`, we also utilize \code{\link[progressr]{progressor}} function in the `progressr` package to show the progress bar,
+so please install the `progressr` package from github (\url{https://github.com/HenrikBengtsson/progressr}).
+For `parallel.method = "furrr"`, you can perform multi-thread parallelization by
 sharing memories, which results in saving your memory, but quite slower compared to `parallel.method = "mclapply"`.
 
-When `parallel.method = "foreach"`, we utilize \code{\link[foreach]{foreach}} function in the `foreach` package 
-with the utilization of \code{\link[parallel]{makeCluster}} function in `parallel` package, 
-and \code{\link[doParallel]{registerDoParallel}} function in `doParallel` package. 
-With `count = TRUE`, we also utilize \code{\link[utils]{setTxtProgressBar}} and 
+When `parallel.method = "foreach"`, we utilize \code{\link[foreach]{foreach}} function in the `foreach` package
+with the utilization of \code{\link[parallel]{makeCluster}} function in `parallel` package,
+and \code{\link[doParallel]{registerDoParallel}} function in `doParallel` package.
+With `count = TRUE`, we also utilize \code{\link[utils]{setTxtProgressBar}} and
 \code{\link[utils]{txtProgressBar}} functions in the `utils` package to show the progress bar.
 
-We recommend that you use the option `parallel.method = "mclapply"`, but for Windows users, 
-this parallelization method is not supported. So, if you are Windows user, 
+We recommend that you use the option `parallel.method = "mclapply"`, but for Windows users,
+this parallelization method is not supported. So, if you are Windows user,
 we recommend that you use the option `parallel.method = "foreach"`.}
 
 \item{check.size.epi}{This argument determines how many SNPs (around the SNP detected by normal GWAS) you will check epistasis.}
@@ -169,6 +170,13 @@ You should assign your gene information to gene.set in the form of a "data.frame
 In the first column, you should assign the gene name. And in the second column, you should assign the names of each marker,
 which correspond to the marker names of "geno" argument.}
 
+\item{map.gene.set}{Genotype map for `gene.set` (list of haplotype blocks).
+This is a data.frame with the haplotype block (SNP-set, or gene-set) names in the first column.
+The second and third columns contain the chromosome and map position for each block.
+The forth column contains the cumulative map position for each block, which can be computed by \code{\link{cumsumPos}} function.
+If this argument is NULL, the map will be constructed by \code{\link{genesetmap}} function after the SNP-set GWAS.
+It will take some time, so you can reduce the computational time by assigning this argument beforehand.}
+
 \item{sig.level}{Significance level for the threshold. The default is 0.05.}
 
 \item{method.thres}{Method for detemining threshold of significance. "BH" and "Bonferroni are offered.}
@@ -207,8 +215,8 @@ When saveName = NULL, the plot is not saved.}
 
 \item{main.epi.2d}{The title of 2d plot. If this argument is NULL, trait name is set as the title.}
 
-\item{skip.check}{As default, RAINBOWR checks the type of input data and modifies it into the correct format. 
-However, it will take some time, so if you prepare the correct format of input data, you can skip this procedure 
+\item{skip.check}{As default, RAINBOWR checks the type of input data and modifies it into the correct format.
+However, it will take some time, so if you prepare the correct format of input data, you can skip this procedure
 by setting `skip.check = TRUE`.}
 
 \item{verbose}{If this argument is TRUE, messages for the current steps will be shown.}
@@ -243,100 +251,104 @@ Perform normal GWAS (genome-wide association studies) first, then check epistati
 \dontshow{
   ### Import RAINBOWR
   require(RAINBOWR)
-  
+
   ### Load example datasets
   data("Rice_Zhao_etal")
   Rice_geno_score <- Rice_Zhao_etal$genoScore
   Rice_geno_map <- Rice_Zhao_etal$genoMap
   Rice_pheno <- Rice_Zhao_etal$pheno
-  
+
 
   ### Select one trait for example
   trait.name <- "Flowering.time.at.Arkansas"
   y <- Rice_pheno[1:50, trait.name, drop = FALSE]
   # use first 50 accessions
-  
+
   ### Remove SNPs whose MAF <= 0.05
   x.0 <- t(Rice_geno_score)
   MAF.cut.res <- MAF.cut(x.0 = x.0, map.0 = Rice_geno_map)
   x <- MAF.cut.res$x
   map <- MAF.cut.res$map
-  
-  
+
+
   ### Estimate genomic relationship matrix (GRM)
-  K.A <- calcGRM(genoMat = x) 
-  
-  
+  K.A <- calcGRM(genoMat = x)
+
+
   ### Modify data
   modify.data.res <- modify.data(pheno.mat = y, geno.mat = x, map = map,
                                  return.ZETA = TRUE, return.GWAS.format = TRUE)
   pheno.GWAS <- modify.data.res$pheno.GWAS
   geno.GWAS <- modify.data.res$geno.GWAS
   ZETA <- modify.data.res$ZETA
-  
-  
-  
+
+
+
   ### Perform two-step epistasis GWAS (single-snp GWAS -> Check epistasis for significant markers)
   twostep.epi.res <- RGWAS.twostep.epi(pheno = pheno.GWAS, geno = geno.GWAS, ZETA = ZETA,
                                        n.PC = 4, test.method = "LR", gene.set = NULL,
                                        window.size.half = 10, window.slide = 21,
                                        plot.Manhattan.1 = FALSE, plot.qq.1 = FALSE,
                                        plot.epi.3d = FALSE, plot.epi.2d = FALSE,
-                                       verbose = FALSE, count = FALSE, time = FALSE)
+                                       verbose = FALSE, count = FALSE, time = FALSE,
+                                       package.MM = "gaston", parallel.method = "mclapply",
+                                       skip.check = TRUE, n.core = 1)
 }
 
 
 \donttest{
   ### Import RAINBOWR
   require(RAINBOWR)
-  
+
   ### Load example datasets
   data("Rice_Zhao_etal")
   Rice_geno_score <- Rice_Zhao_etal$genoScore
   Rice_geno_map <- Rice_Zhao_etal$genoMap
   Rice_pheno <- Rice_Zhao_etal$pheno
-  
+
   ### View each dataset
   See(Rice_geno_score)
   See(Rice_geno_map)
   See(Rice_pheno)
-  
+
   ### Select one trait for example
   trait.name <- "Flowering.time.at.Arkansas"
   y <- Rice_pheno[, trait.name, drop = FALSE]
-  
+
   ### Remove SNPs whose MAF <= 0.05
   x.0 <- t(Rice_geno_score)
   MAF.cut.res <- MAF.cut(x.0 = x.0, map.0 = Rice_geno_map)
   x <- MAF.cut.res$x
   map <- MAF.cut.res$map
-  
-  
+
+
   ### Estimate genomic relationship matrix (GRM)
-  K.A <- calcGRM(genoMat = x) 
-  
-  
+  K.A <- calcGRM(genoMat = x)
+
+
   ### Modify data
   modify.data.res <- modify.data(pheno.mat = y, geno.mat = x, map = map,
                                  return.ZETA = TRUE, return.GWAS.format = TRUE)
   pheno.GWAS <- modify.data.res$pheno.GWAS
   geno.GWAS <- modify.data.res$geno.GWAS
   ZETA <- modify.data.res$ZETA
-  
-  
+
+
   ### View each data for RAINBOWR
   See(pheno.GWAS)
   See(geno.GWAS)
   str(ZETA)
-  
-  
-  
-  
+
+
+
+
   ### Perform two-step epistasis GWAS (single-snp GWAS -> Check epistasis for significant markers)
   twostep.epi.res <- RGWAS.twostep.epi(pheno = pheno.GWAS, geno = geno.GWAS, ZETA = ZETA,
                                        n.PC = 4, test.method = "LR", gene.set = NULL,
-                                       window.size.half = 10, window.slide = 21)
-  
+                                       window.size.half = 10, window.slide = 21,
+                                       package.MM = "gaston", parallel.method = "mclapply",
+                                       skip.check = TRUE, n.core = 2)
+
   See(twostep.epi.res$epistasis$scores)
 }
 }
