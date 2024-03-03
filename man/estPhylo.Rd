@@ -13,6 +13,7 @@ estPhylo(
   chrInterest = NULL,
   posRegion = NULL,
   blockName = NULL,
+  nHaplo = NULL,
   pheno = NULL,
   geno = NULL,
   ZETA = NULL,
@@ -27,7 +28,8 @@ estPhylo(
   nGrp = 3,
   nIterClustering = 100,
   kernelTypes = "addNOIA",
-  nCores = parallel::detectCores() - 1,
+  n.core = parallel::detectCores() - 1,
+  parallel.method = "mclapply",
   hOpt = "optimized",
   hOpt2 = "optimized",
   maxIter = 20,
@@ -71,11 +73,14 @@ Please assign the position in the chromosome to this argument.}
 
 \item{blockName}{You can specify the haplotype block (or gene set, SNP-set) of interest by the name of haplotype block in `geno`.}
 
+\item{nHaplo}{Number of haplotypes. If not defined, this is automatically defined by the data.
+If defined, k-medoids clustering is performed to define haplotypes.}
+
 \item{pheno}{Data frame where the first column is the line name (gid).
 The remaining columns should be a phenotype to test.}
 
 \item{geno}{Data frame with the marker names in the first column. The second and third columns contain the chromosome and map position.
-Columns 4 and higher contain the marker scores for each line, coded as {-1, 0, 1} = {aa, Aa, AA}.}
+Columns 4 and higher contain the marker scores for each line, coded as [-1, 0, 1] = [aa, Aa, AA].}
 
 \item{ZETA}{A list of covariance (relationship) matrix (K: \eqn{m \times m}) and its design matrix (Z: \eqn{n \times m}) of random effects.
 Please set names of list "Z" and "K"! You can use more than one kernel matrix.
@@ -121,7 +126,30 @@ then the `addNOIA` (or corresponding) option in the `calcGRM` function will be u
 and if this argument is `phylo`, the gaussian kernel based on phylogenetic distance will be computed from phylogenetic tree.
 You can assign more than one kernelTypes for this argument; for example, kernelTypes = c("addNOIA", "phylo").}
 
-\item{nCores}{The number of cores used for optimization.}
+\item{n.core}{Setting n.core > 1 will enable parallel execution on a machine with multiple cores.
+This argument is not valid when `parallel.method = "furrr"`.}
+
+\item{parallel.method}{Method for parallel computation in optimizing hyperparameters for estimating haplotype effects.
+ We offer three methods, "mclapply", "furrr", and "foreach".
+
+When `parallel.method = "mclapply"`, we utilize \code{\link[pbmcapply]{pbmclapply}} function in the `pbmcapply` package
+with `count = TRUE` and \code{\link[parallel]{mclapply}} function in the `parallel` package with `count = FALSE`.
+
+When `parallel.method = "furrr"`, we utilize \code{\link[furrr]{future_map}} function in the `furrr` package.
+With `count = TRUE`, we also utilize \code{\link[progressr]{progressor}} function in the `progressr` package to show the progress bar,
+so please install the `progressr` package from github (\url{https://github.com/HenrikBengtsson/progressr}).
+For `parallel.method = "furrr"`, you can perform multi-thread parallelization by
+sharing memories, which results in saving your memory, but quite slower compared to `parallel.method = "mclapply"`.
+
+When `parallel.method = "foreach"`, we utilize \code{\link[foreach]{foreach}} function in the `foreach` package
+with the utilization of \code{\link[parallel]{makeCluster}} function in `parallel` package,
+and \code{\link[doParallel]{registerDoParallel}} function in `doParallel` package.
+With `count = TRUE`, we also utilize \code{\link[utils]{setTxtProgressBar}} and
+\code{\link[utils]{txtProgressBar}} functions in the `utils` package to show the progress bar.
+
+We recommend that you use the option `parallel.method = "mclapply"`, but for Windows users,
+this parallelization method is not supported. So, if you are Windows user,
+we recommend that you use the option `parallel.method = "foreach"`.}
 
 \item{hOpt}{Optimized hyper parameter for constructing kernel when estimating haplotype effects.
 If hOpt = "optimized", hyper parameter will be optimized in the function.
@@ -177,6 +205,7 @@ alpha for node will be same as the alpha for tip with negative effects.}
 \describe{A list / lists of
 \item{$haplotypeInfo}{\describe{A list of haplotype information with
 \item{$haploCluster}{A vector indicating each individual belongs to which haplotypes.}
+\item{$haploMat}{A n x h matrix where n is the number of genotypes and h is the number of haplotypes.}
 \item{$haploBlock}{Marker genotype of haplotype block of interest for the representing haplotypes.}
 }
 }

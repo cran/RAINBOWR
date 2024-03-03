@@ -199,6 +199,10 @@ parallel.compute <- function(vec,
 
     parallel::stopCluster(cl = clust)
 
+    all.res <- lapply(X = 1:length(all.res),
+                      FUN = function(x) {
+                        return(all.res[x])
+                      })
     if (count) {
       cat("\n")
     }
@@ -210,6 +214,7 @@ parallel.compute <- function(vec,
 
   return(all.res)
 }
+
 
 
 
@@ -237,12 +242,15 @@ is.diag <- function(x) {
 #' @param input Data frame of GWAS results where the first column is the marker names,
 #' the second and third column is the chromosome amd map position, and the forth column is -log10(p) for each marker.
 #' @param sig.level  Significance level for the threshold. The default is 0.05. You can also assign vector of sinificance levels.
-#' @param method Two methods are offered:
+#' @param method Three methods are offered:
 #'
-#' "BH" : Benjamini-Hochberg method. To control FDR, use this method.
-#' "Bonf" : Bonferroni method. To perform simple correction of multiple testing, use this method.
+#' "BH": Benjamini-Hochberg method. To control FDR, use this method.
 #'
-#' You can also assign both of them by 'method = c("BH", "Bonf")'
+#' "Bonf": Bonferroni method. To perform simple correction of multiple testing, use this method.
+#'
+#' "Sidak": Sidak method.
+#'
+#' You can also assign two of them by 'method = c("BH", "Bonf")'
 #'
 #' @return The value of the threshold. If there is no threshold, it returns NA.
 #'
@@ -365,6 +373,11 @@ CalcThreshold <- function(input, sig.level = 0.05, method = "BH") {
       threshold <- -log10(sig.level.now / n.mark)
     }
 
+    if (method.now == "Sidak") {
+      n.mark <- nrow(input)
+      threshold <- -log10(x = 1 - (1 - sig.level.now) ^ (1 / n.mark))
+    }
+
     thresholds[thres.no] <- threshold
   }
   names(thresholds) <- paste0(methods, "_", sig.levels)
@@ -407,6 +420,31 @@ calcGRM <- function(genoMat,
   supportedMethods <- c("addNOIA", "domNOIA", "A.mat", "linear",
                         "gaussian", "exponential", "correlation")
   stopifnot(methodGRM %in% supportedMethods)
+
+  genoMatUniq <- sort(unique(c(genoMat)), decreasing = FALSE)
+  genoMatUniqLen <- length(genoMatUniq)
+
+  if (genoMatUniqLen == 2) {
+    isScoring1 <- all(genoMatUniq == c(-1, 1))
+    isScoring2 <- all(genoMatUniq == c(0, 2))
+  } else {
+    if (genoMatUniqLen == 3) {
+      isScoring1 <- all(genoMatUniq == c(-1, 0, 1))
+      isScoring2 <- all(genoMatUniq == c(0, 1, 2))
+    } else {
+      stop("Something wrong with your genotype data!!")
+    }
+  }
+
+  if (isScoring1) {
+    genoMat <- genoMat
+  } else {
+    if (isScoring2) {
+      genoMat <- genoMat - 1
+    } else {
+      stop("Genotype data should be scored with (-1, 0, 1) or (0, 1, 2)!!")
+    }
+  }
 
   nInd <- nrow(genoMat)
   nMarkers <- ncol(genoMat)

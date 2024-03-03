@@ -219,3 +219,19 @@ Then, we fixed this by using the canonical URL of the CRAN package "https://cran
 - We added some codes to cut MAF for marker genotype beforehand in the `score.calc` and `score.calc.MC` functions.
 - We added some codes to cut MAF for `gene.set` argument beforehand inside the `RGWAS.multisnp`, `RGWAS.epistasis`, and `RGWAS.multisnp.interaction` functions.
 - We added some code to try performing other function to solve mixed effects model if the log-likelihood is returned as infinity when using the `score.calc.LR`, `score.calc.LR.MC`, and `EM3.general` functions.
+
+
+# Oct 2, 2023, RAINBOWR version 0.1.34
+## Major changes (new functions, etc...)
+- We changed the argument name `nCores` to `n.core` and added the argument `parallel.method` in the `estPhylo` and `estNetwork` functions.
+- We modified the `estPhylo` and `estNetwork` functions so that they can perform parallel computing even in Windows OS by using the `parallel.compute` function.
+- We modified the `estPhylo` and `estNetwork` functions so that they can return a n x h matrix where n is the number of genotypes and h is the number of haplotypes for each block of interest. Also, they were extended so that they could perform k-medoids clustering to define the haplotype when the number of haplotypes is predefined.
+- We also modified the `parallel.compute` function so that `parallel.method = 'foreach'` option can return the same values as `parallel.method = 'mclapply'`.
+
+
+# Mar 03, 2024, RAINBOWR version 0.1.35
+## Major changes (new functions, etc...)
+- We modified the `calcGRM` function so that it can compute the genomic relationship matrix with the input of marker genotype scored with {0, 1, 2}.
+- We modified the `See` function so that it can show the shorter results for `list` objects.
+- We added the `method = "Sidak"` option in the `CalcThreshold` function.
+- We fixed the error "error: no match for 'operator/'" in `EMM_functions.cpp` by explicitly extracting each element from the matrix by using `.coeff`.
